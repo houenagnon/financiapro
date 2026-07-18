@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { API_URL, REFRESH_COOKIE } from "@/lib/config";
+import { parseBackendJson } from "@/lib/backend-response";
 
 const REFRESH_MAX_AGE = 60 * 60 * 24 * 7; // aligné sur REFRESH_TOKEN_LIFETIME côté Django
 
@@ -14,7 +15,7 @@ export async function POST(request: Request) {
     body: JSON.stringify(credentials),
   });
 
-  const data = await response.json();
+  const data = await parseBackendJson(response);
   if (!response.ok) {
     return NextResponse.json(data, { status: response.status });
   }

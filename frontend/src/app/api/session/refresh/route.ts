@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { API_URL, REFRESH_COOKIE } from "@/lib/config";
+import { parseBackendJson } from "@/lib/backend-response";
 
 const REFRESH_MAX_AGE = 60 * 60 * 24 * 7;
 
@@ -21,7 +22,7 @@ export async function POST() {
     body: JSON.stringify({ refresh }),
   });
 
-  const data = await response.json();
+  const data = await parseBackendJson(response);
   if (!response.ok) {
     cookieStore.delete(REFRESH_COOKIE);
     return NextResponse.json(data, { status: response.status });
