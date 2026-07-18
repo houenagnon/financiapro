@@ -29,7 +29,7 @@ export default function UtilisateursPage() {
   return (
     <div>
       <PageHeader title="Utilisateurs" />
-      <p className="mb-4 text-sm text-gray-500">
+      <p className="mb-4 text-sm text-slate-500">
         Les économes principaux sont créés avec leur centre (page Centres). Les
         assistants sont créés par leur économe.
       </p>
@@ -39,9 +39,9 @@ export default function UtilisateursPage() {
         <EmptyMessage message="Aucun utilisateur." />
       )}
       {data && data.results.length > 0 && (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
+        <div className="card overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50 text-left text-xs font-medium uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">Nom</th>
                 <th className="px-4 py-3">Email</th>
@@ -50,13 +50,13 @@ export default function UtilisateursPage() {
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-slate-100">
               {data.results.map((user) => (
                 <tr key={user.id}>
-                  <td className="px-4 py-3 font-medium text-gray-900">
+                  <td className="px-4 py-3 font-medium text-slate-900">
                     {user.first_name} {user.last_name}
                   </td>
-                  <td className="px-4 py-3 text-gray-500">{user.email}</td>
+                  <td className="px-4 py-3 text-slate-500">{user.email}</td>
                   <td className="px-4 py-3">{ROLE_LABELS[user.role]}</td>
                   <td className="px-4 py-3">
                     <ActiveBadge active={user.is_active} />
@@ -65,7 +65,7 @@ export default function UtilisateursPage() {
                     {user.is_active && (
                       <button
                         onClick={() => deactivate(user)}
-                        className="text-sm text-red-600 hover:underline"
+                        className="text-sm text-rose-600 hover:underline"
                       >
                         Désactiver
                       </button>

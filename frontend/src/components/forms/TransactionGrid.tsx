@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import { api, ApiClientError } from "@/lib/api-client";
+import { formatMontant } from "@/lib/format";
 import { ErrorMessage } from "@/components/ui/StatusMessage";
 import type { CategoryTree, Nature } from "@/types/finance";
 
@@ -36,8 +37,19 @@ function ligneVide(): GrilleInput["lignes"][number] {
   };
 }
 
+/** Somme d'affichage des montants saisis (indicatif uniquement — la
+ * précision de référence reste côté serveur en Decimal). */
+function totalSaisi(lignes: GrilleInput["lignes"], nature: Nature): number {
+  return lignes
+    .filter((l) => l?.type_operation === nature)
+    .reduce((somme, l) => {
+      const montant = Number(String(l?.montant ?? "").replace(",", "."));
+      return somme + (Number.isNaN(montant) ? 0 : montant);
+    }, 0);
+}
+
 const cellInput =
-  "w-full border-0 bg-transparent px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500";
+  "w-full border-0 bg-transparent px-3 py-2 text-sm text-slate-800 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 focus:bg-indigo-50";
 
 export function TransactionGrid({ categoriesTree }: { categoriesTree: CategoryTree[] }) {
   const router = useRouter();
@@ -58,6 +70,8 @@ export function TransactionGrid({ categoriesTree }: { categoriesTree: CategoryTr
   const { fields, append, remove } = useFieldArray({ control, name: "lignes" });
 
   const lignes = watch("lignes");
+  const totalRevenus = totalSaisi(lignes ?? [], "REVENU");
+  const totalDepenses = totalSaisi(lignes ?? [], "DEPENSE");
 
   const optionsPour = (nature: Nature) =>
     categoriesTree
@@ -66,7 +80,7 @@ export function TransactionGrid({ categoriesTree }: { categoriesTree: CategoryTr
         { id: racine.id, label: racine.nom },
         ...racine.sous_categories.map((sous) => ({
           id: sous.id,
-          label: `${racine.nom} > ${sous.nom}`,
+          label: `${racine.nom} › ${sous.nom}`,
         })),
       ]);
 
@@ -102,7 +116,6 @@ export function TransactionGrid({ categoriesTree }: { categoriesTree: CategoryTr
       return;
     }
 
-    // Retire les lignes enregistrées (en partant de la fin pour garder les index valides).
     const reussies = values.lignes
       .map((_, index) => index)
       .filter((index) => !indexEchecs.includes(index));
@@ -118,50 +131,57 @@ export function TransactionGrid({ categoriesTree }: { categoriesTree: CategoryTr
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate>
       {enregistrees > 0 && (
-        <p className="mb-3 rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">
+        <p className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-800">
           {enregistrees} opération(s) enregistrée(s).
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-gray-300 bg-white">
-        <table className="min-w-full text-sm">
-          <thead className="bg-gray-100 text-left text-xs font-medium uppercase text-gray-600">
-            <tr className="divide-x divide-gray-300">
-              <th className="w-10 px-2 py-2 text-center">#</th>
-              <th className="w-36 px-2 py-2">Date</th>
-              <th className="w-32 px-2 py-2">Type</th>
-              <th className="w-56 px-2 py-2">Catégorie</th>
-              <th className="w-32 px-2 py-2">Montant</th>
-              <th className="px-2 py-2">Description</th>
-              <th className="w-10 px-2 py-2" />
+      <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-sm">
+        <table className="w-full min-w-[760px] text-sm">
+          <thead>
+            <tr>
+              <th className="w-9 border border-slate-200 bg-slate-100 p-2" />
+              {["Date", "Type", "Catégorie", "Montant", "Description"].map(
+                (titre) => (
+                  <th
+                    key={titre}
+                    className="border border-slate-200 bg-slate-100 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[.07em] text-slate-500"
+                  >
+                    {titre}
+                  </th>
+                ),
+              )}
+              <th className="w-10 border border-slate-200 bg-slate-100 p-2" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody>
             {fields.map((field, index) => {
               const nature = (lignes?.[index]?.type_operation ?? "REVENU") as Nature;
               const ligneErreurs = errors.lignes?.[index];
               return (
-                <tr key={field.id} className="divide-x divide-gray-200 align-top">
-                  <td className="px-2 py-1.5 text-center text-xs text-gray-400">
+                <tr key={field.id} className="align-top">
+                  <td className="border border-slate-200 bg-slate-100 px-2 py-2.5 text-center text-xs text-slate-400">
                     {index + 1}
                   </td>
-                  <td>
+                  <td className="w-[140px] border border-slate-200">
                     <input
                       type="date"
                       {...register(`lignes.${index}.date_operation`)}
                       className={cellInput}
                     />
                   </td>
-                  <td>
+                  <td className="w-[120px] border border-slate-200">
                     <select
                       {...register(`lignes.${index}.type_operation`)}
-                      className={cellInput}
+                      className={`${cellInput} font-semibold ${
+                        nature === "REVENU" ? "text-emerald-600" : "text-rose-600"
+                      }`}
                     >
                       <option value="REVENU">Revenu</option>
                       <option value="DEPENSE">Dépense</option>
                     </select>
                   </td>
-                  <td>
+                  <td className="w-[230px] border border-slate-200">
                     <select
                       {...register(`lignes.${index}.category`)}
                       className={cellInput}
@@ -174,26 +194,26 @@ export function TransactionGrid({ categoriesTree }: { categoriesTree: CategoryTr
                       ))}
                     </select>
                     {ligneErreurs?.category && (
-                      <p className="px-2 pb-1 text-xs text-red-600">
+                      <p className="px-3 pb-1.5 text-xs text-rose-600">
                         {ligneErreurs.category.message}
                       </p>
                     )}
                   </td>
-                  <td>
+                  <td className="w-[130px] border border-slate-200">
                     <input
                       type="text"
                       inputMode="decimal"
-                      placeholder="0.00"
+                      placeholder="0"
                       {...register(`lignes.${index}.montant`)}
                       className={`${cellInput} text-right tabular-nums`}
                     />
                     {ligneErreurs?.montant && (
-                      <p className="px-2 pb-1 text-xs text-red-600">
+                      <p className="px-3 pb-1.5 text-xs text-rose-600">
                         {ligneErreurs.montant.message}
                       </p>
                     )}
                   </td>
-                  <td>
+                  <td className="border border-slate-200">
                     <input
                       type="text"
                       placeholder="Facultatif"
@@ -201,18 +221,18 @@ export function TransactionGrid({ categoriesTree }: { categoriesTree: CategoryTr
                       className={cellInput}
                     />
                     {erreursLignes[index] && (
-                      <p className="px-2 pb-1 text-xs text-red-600">
+                      <p className="px-3 pb-1.5 text-xs text-rose-600">
                         {erreursLignes[index]}
                       </p>
                     )}
                   </td>
-                  <td className="px-2 py-1.5 text-center">
+                  <td className="border border-slate-200 bg-slate-100 px-1 py-1.5 text-center">
                     <button
                       type="button"
                       onClick={() => remove(index)}
                       disabled={fields.length === 1}
                       title="Supprimer la ligne"
-                      className="text-gray-400 hover:text-red-600 disabled:opacity-30"
+                      className="rounded p-1 text-slate-400 hover:text-rose-600 disabled:opacity-30"
                     >
                       ✕
                     </button>
@@ -221,29 +241,40 @@ export function TransactionGrid({ categoriesTree }: { categoriesTree: CategoryTr
               );
             })}
           </tbody>
+          <tfoot>
+            <tr>
+              <td
+                colSpan={4}
+                className="border-t border-slate-200 bg-slate-50 px-3 py-2.5 text-right text-[13px] text-slate-500"
+              >
+                Totaux saisis
+              </td>
+              <td className="border-t border-slate-200 bg-slate-50 px-3 py-2.5 text-right text-[13px] font-bold tabular-nums">
+                <span className="text-emerald-600">+{formatMontant(totalRevenus)}</span>
+                {" · "}
+                <span className="text-rose-600">−{formatMontant(totalDepenses)}</span>
+              </td>
+              <td colSpan={2} className="border-t border-slate-200 bg-slate-50 px-3 py-1.5">
+                <button
+                  type="button"
+                  onClick={() => append(ligneVide())}
+                  className="btn-ghost px-3 py-1 text-[13px]"
+                >
+                  + Ajouter une ligne
+                </button>
+              </td>
+            </tr>
+          </tfoot>
         </table>
       </div>
 
-      <div className="mt-3 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => append(ligneVide())}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
-        >
-          + Ajouter une ligne
+      <div className="mt-4 flex items-center gap-2.5">
+        <button type="submit" disabled={isSubmitting} className="btn-primary">
+          {isSubmitting
+            ? "Enregistrement…"
+            : `Enregistrer ${fields.length} ligne(s)`}
         </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-        >
-          {isSubmitting ? "Enregistrement…" : `Enregistrer ${fields.length} ligne(s)`}
-        </button>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-        >
+        <button type="button" onClick={() => router.back()} className="btn-ghost">
           Annuler
         </button>
       </div>

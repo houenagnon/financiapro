@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 
-import { FilterBar, TotalsRow, type PeriodeFiltres } from "@/components/reports/FilterBar";
+import { FilterBar, type PeriodeFiltres } from "@/components/reports/FilterBar";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { StatsRow } from "@/components/ui/StatCard";
+import { TableCard, Td, Th, Tr } from "@/components/ui/Table";
 import { ErrorMessage, LoadingMessage } from "@/components/ui/StatusMessage";
 import { useApi } from "@/hooks/useApi";
+import { formatMontant } from "@/lib/format";
 import type { Paginated } from "@/types/api";
 import type { TypeCentre } from "@/types/centre";
 import type { RapportConsolide } from "@/types/report";
@@ -22,13 +25,13 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <PageHeader title="Vue consolidée" />
+      <PageHeader crumb="Économat central" title="Vue consolidée" />
 
       <FilterBar filtres={filtres} onChange={setFiltres}>
         <select
           value={typeCentre}
           onChange={(e) => setTypeCentre(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+          className="input-base w-auto"
         >
           <option value="">Tous les types de centre</option>
           {(types.data?.results ?? []).map((type) => (
@@ -43,45 +46,39 @@ export default function DashboardPage() {
       {error && <ErrorMessage message={error} />}
       {data && (
         <>
-          <TotalsRow totaux={data.global} />
-          <h2 className="mb-3 text-base font-medium text-gray-900">
+          <StatsRow totaux={data.global} />
+          <h2 className="mb-3 text-sm font-bold text-slate-900">
             Par type de centre
           </h2>
           {data.par_type_centre.length === 0 ? (
-            <p className="text-sm text-gray-500">
-              Aucune donnée sur cette période.
-            </p>
+            <p className="text-sm text-slate-500">Aucune donnée sur cette période.</p>
           ) : (
-            <div className="max-w-3xl overflow-x-auto rounded-lg border border-gray-200 bg-white">
-              <table className="min-w-full divide-y divide-gray-200 text-sm">
-                <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
-                  <tr>
-                    <th className="px-4 py-3">Type de centre</th>
-                    <th className="px-4 py-3 text-right">Revenus</th>
-                    <th className="px-4 py-3 text-right">Dépenses</th>
-                    <th className="px-4 py-3 text-right">Solde</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {data.par_type_centre.map((ligne) => (
-                    <tr key={ligne.type_centre_id}>
-                      <td className="px-4 py-3 font-medium text-gray-900">
-                        {ligne.type_centre}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums text-green-700">
-                        {ligne.revenus}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums text-red-700">
-                        {ligne.depenses}
-                      </td>
-                      <td className="px-4 py-3 text-right font-medium tabular-nums">
-                        {ligne.solde}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <TableCard>
+              <thead>
+                <tr>
+                  <Th>Type de centre</Th>
+                  <Th right>Revenus</Th>
+                  <Th right>Dépenses</Th>
+                  <Th right>Solde</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.par_type_centre.map((ligne) => (
+                  <Tr key={ligne.type_centre_id}>
+                    <Td className="font-semibold">{ligne.type_centre}</Td>
+                    <Td right className="tabular-nums text-emerald-600">
+                      {formatMontant(ligne.revenus)}
+                    </Td>
+                    <Td right className="tabular-nums text-rose-600">
+                      {formatMontant(ligne.depenses)}
+                    </Td>
+                    <Td right className="font-bold tabular-nums">
+                      {formatMontant(ligne.solde)}
+                    </Td>
+                  </Tr>
+                ))}
+              </tbody>
+            </TableCard>
           )}
         </>
       )}

@@ -62,41 +62,41 @@ export default function TypesCentresPage() {
 
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="mb-6 flex max-w-2xl flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-4"
+        className="mb-6 flex max-w-2xl flex-wrap items-end gap-3 card p-4"
         noValidate
       >
         <div className="min-w-40 flex-1">
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-slate-700">
             Libellé
             <input
               type="text"
               placeholder="Paroisse, École…"
               {...register("libelle")}
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="input-base mt-1"
             />
           </label>
           {errors.libelle && (
-            <p className="mt-1 text-sm text-red-600">{errors.libelle.message}</p>
+            <p className="mt-1 text-sm text-rose-600">{errors.libelle.message}</p>
           )}
         </div>
         <div className="min-w-40 flex-1">
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-slate-700">
             Code
             <input
               type="text"
               placeholder="paroisse"
               {...register("code")}
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="input-base mt-1"
             />
           </label>
           {errors.code && (
-            <p className="mt-1 text-sm text-red-600">{errors.code.message}</p>
+            <p className="mt-1 text-sm text-rose-600">{errors.code.message}</p>
           )}
         </div>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="btn-primary"
         >
           Ajouter
         </button>
@@ -109,9 +109,9 @@ export default function TypesCentresPage() {
         <EmptyMessage message="Aucun type de centre défini." />
       )}
       {data && data.results.length > 0 && (
-        <div className="max-w-2xl overflow-x-auto rounded-lg border border-gray-200 bg-white">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
+        <div className="max-w-2xl card overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50 text-left text-xs font-medium uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">Libellé</th>
                 <th className="px-4 py-3">Code</th>
@@ -119,18 +119,18 @@ export default function TypesCentresPage() {
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-slate-100">
               {data.results.map((type) => (
                 <tr key={type.id}>
-                  <td className="px-4 py-3 font-medium text-gray-900">{type.libelle}</td>
-                  <td className="px-4 py-3 text-gray-500">{type.code}</td>
+                  <td className="px-4 py-3 font-medium text-slate-900">{type.libelle}</td>
+                  <td className="px-4 py-3 text-slate-500">{type.code}</td>
                   <td className="px-4 py-3">
                     <ActiveBadge active={type.is_active} />
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
                       onClick={() => toggle(type)}
-                      className="text-sm text-blue-700 hover:underline"
+                      className="text-sm text-indigo-600 hover:underline"
                     >
                       {type.is_active ? "Désactiver" : "Réactiver"}
                     </button>

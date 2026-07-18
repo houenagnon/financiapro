@@ -22,7 +22,7 @@ export default function HomePage() {
   }, [user, loading, router]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center text-sm text-gray-500">
+    <main className="flex min-h-screen items-center justify-center text-sm text-slate-500">
       Chargement…
     </main>
   );

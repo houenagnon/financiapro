@@ -12,7 +12,7 @@ export default function NouvelleOperationPage() {
   return (
     <div>
       <PageHeader title="Saisie des opérations" />
-      <p className="mb-4 text-sm text-gray-500">
+      <p className="mb-4 text-sm text-slate-500">
         Saisissez vos revenus et dépenses ligne par ligne, comme dans un
         tableur, puis enregistrez le tout en une fois.
       </p>

@@ -3,10 +3,12 @@
 import Link from "next/link";
 
 import { PageHeader } from "@/components/ui/PageHeader";
+import { TableCard, Td, Th, Tr } from "@/components/ui/Table";
 import {
   ActiveBadge,
   EmptyMessage,
   ErrorMessage,
+  InfoBadge,
   LoadingMessage,
 } from "@/components/ui/StatusMessage";
 import { useApi } from "@/hooks/useApi";
@@ -19,49 +21,53 @@ export default function CentresPage() {
   return (
     <div>
       <PageHeader
+        crumb="Économat central"
         title="Centres"
-        action={{ href: "/centres/nouveau", label: "Nouveau centre" }}
+        action={{ href: "/centres/nouveau", label: "+ Nouveau centre" }}
       />
       {loading && <LoadingMessage />}
       {error && <ErrorMessage message={error} />}
       {data && data.results.length === 0 && (
-        <EmptyMessage message="Aucun centre pour le moment." />
+        <EmptyMessage
+          message="Aucun centre pour le moment. Créez votre premier centre et son économe principal."
+          action={{ href: "/centres/nouveau", label: "Créer un centre" }}
+        />
       )}
       {data && data.results.length > 0 && (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
-              <tr>
-                <th className="px-4 py-3">Nom</th>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Économe principal</th>
-                <th className="px-4 py-3">Statut</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {data.results.map((centre) => (
-                <tr key={centre.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/centres/${centre.id}`}
-                      className="font-medium text-blue-700 hover:underline"
-                    >
-                      {centre.nom}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3">{centre.type_centre.libelle}</td>
-                  <td className="px-4 py-3">
-                    {centre.econome_principal.first_name}{" "}
-                    {centre.econome_principal.last_name}
-                  </td>
-                  <td className="px-4 py-3">
-                    <ActiveBadge active={centre.is_active} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <TableCard>
+          <thead>
+            <tr>
+              <Th>Nom</Th>
+              <Th>Type</Th>
+              <Th>Économe principal</Th>
+              <Th>Statut</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.results.map((centre) => (
+              <Tr key={centre.id}>
+                <Td>
+                  <Link
+                    href={`/centres/${centre.id}`}
+                    className="font-semibold text-indigo-600 hover:underline"
+                  >
+                    {centre.nom}
+                  </Link>
+                </Td>
+                <Td>
+                  <InfoBadge>{centre.type_centre.libelle}</InfoBadge>
+                </Td>
+                <Td className="text-slate-600">
+                  {centre.econome_principal.first_name}{" "}
+                  {centre.econome_principal.last_name}
+                </Td>
+                <Td>
+                  <ActiveBadge active={centre.is_active} />
+                </Td>
+              </Tr>
+            ))}
+          </tbody>
+        </TableCard>
       )}
     </div>
   );

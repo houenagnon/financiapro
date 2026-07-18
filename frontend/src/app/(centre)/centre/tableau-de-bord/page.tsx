@@ -3,35 +3,36 @@
 import Link from "next/link";
 
 import { PageHeader } from "@/components/ui/PageHeader";
+import { BarRow } from "@/components/ui/BarRow";
+import { StatsRow } from "@/components/ui/StatCard";
 import { ErrorMessage, LoadingMessage } from "@/components/ui/StatusMessage";
 import { useApi } from "@/hooks/useApi";
+import { formatDate, formatMontantSigne } from "@/lib/format";
 import type { CentreDashboard, StatutJour } from "@/types/report";
 
-function StatutJourBadge({ statut }: { statut: StatutJour }) {
+function StatutBanner({ statut }: { statut: StatutJour }) {
   if (statut === "NON_DECLARE") {
     return (
-      <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-        Aucune déclaration aujourd&apos;hui.{" "}
-        <Link href="/centre/declaration-du-jour" className="font-medium underline">
-          Déclarer maintenant
+      <div className="mb-5 flex flex-wrap items-center gap-3.5 rounded-xl border border-amber-200 bg-amber-50 px-4.5 py-3 text-sm text-amber-800">
+        <span className="text-lg" aria-hidden>⏳</span>
+        <p className="flex-1">
+          <b className="font-bold">Aucune déclaration aujourd&apos;hui.</b>{" "}
+          Saisissez vos opérations ou déclarez une journée sans mouvement.
+        </p>
+        <Link href="/centre/declaration-du-jour" className="btn-ghost">
+          Aucune opération
         </Link>
       </div>
     );
   }
   return (
-    <div className="rounded-lg border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-800">
-      {statut === "DECLARE_AVEC_MOUVEMENT"
-        ? "Journée déclarée : mouvements enregistrés."
-        : "Journée déclarée : aucune opération."}
-    </div>
-  );
-}
-
-function TotalCard({ label, value, tone }: { label: string; value: string; tone: string }) {
-  return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <p className="text-xs uppercase text-gray-500">{label}</p>
-      <p className={`mt-1 text-2xl font-semibold tabular-nums ${tone}`}>{value}</p>
+    <div className="mb-5 flex items-center gap-3.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4.5 py-3 text-sm text-emerald-800">
+      <span className="text-lg" aria-hidden>✓</span>
+      <p>
+        {statut === "DECLARE_AVEC_MOUVEMENT"
+          ? "Journée déclarée : mouvements enregistrés."
+          : "Journée déclarée : aucune opération."}
+      </p>
     </div>
   );
 }
@@ -43,78 +44,96 @@ export default function TableauDeBordPage() {
   if (error) return <ErrorMessage message={error} />;
   if (!data) return null;
 
+  const maxCategorie = Math.max(
+    1,
+    ...data.par_categorie.map((c) => Number(c.total) || 0),
+  );
+
   return (
     <div>
       <PageHeader
-        title={data.centre.nom}
-        action={{ href: "/centre/operations/nouvelle", label: "Nouvelle opération" }}
+        crumb={data.centre.nom}
+        title="Tableau de bord"
+        action={{ href: "/centre/operations/nouvelle", label: "+ Saisir des opérations" }}
       />
 
-      <div className="mb-6">
-        <StatutJourBadge statut={data.statut_jour} />
-      </div>
+      <StatutBanner statut={data.statut_jour} />
+      <StatsRow totaux={data.totaux} />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <TotalCard label="Revenus" value={data.totaux.revenus} tone="text-green-700" />
-        <TotalCard label="Dépenses" value={data.totaux.depenses} tone="text-red-700" />
-        <TotalCard label="Solde" value={data.totaux.solde} tone="text-gray-900" />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-lg border border-gray-200 bg-white p-4">
-          <h2 className="mb-3 text-base font-medium text-gray-900">
-            Dernières opérations
-          </h2>
-          {data.dernieres_operations.length === 0 && (
-            <p className="text-sm text-gray-500">Aucune opération enregistrée.</p>
-          )}
-          <ul className="divide-y divide-gray-100">
-            {data.dernieres_operations.map((operation) => (
-              <li key={operation.id} className="flex items-center justify-between py-2">
-                <div>
-                  <p className="text-sm text-gray-900">{operation.category}</p>
-                  <p className="text-xs text-gray-500">{operation.date_operation}</p>
-                </div>
-                <span
-                  className={`text-sm font-medium tabular-nums ${
-                    operation.type_operation === "REVENU"
-                      ? "text-green-700"
-                      : "text-red-700"
-                  }`}
+      <div className="grid gap-3.5 lg:grid-cols-[1.2fr_.8fr]">
+        <section className="card">
+          <h2 className="px-4 pt-3.5 text-sm font-bold">Dernières opérations</h2>
+          {data.dernieres_operations.length === 0 ? (
+            <p className="px-4 py-6 text-sm text-slate-500">
+              Aucune opération enregistrée.
+            </p>
+          ) : (
+            <ul className="py-1.5">
+              {data.dernieres_operations.map((operation) => (
+                <li
+                  key={operation.id}
+                  className="flex items-center gap-3 border-t border-slate-100 px-4 py-2.5 first:border-t-0"
                 >
-                  {operation.type_operation === "REVENU" ? "+" : "−"}
-                  {operation.montant}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <Link
-            href="/centre/operations"
-            className="mt-3 inline-block text-sm text-blue-700 hover:underline"
-          >
-            Voir toutes les opérations
-          </Link>
+                  <span
+                    className={`grid h-[30px] w-[30px] shrink-0 place-items-center rounded-lg text-[13px] font-bold ${
+                      operation.type_operation === "REVENU"
+                        ? "bg-emerald-50 text-emerald-600"
+                        : "bg-rose-50 text-rose-600"
+                    }`}
+                    aria-hidden
+                  >
+                    {operation.type_operation === "REVENU" ? "↓" : "↑"}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold">
+                      {operation.category}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      {formatDate(operation.date_operation)}
+                    </span>
+                  </span>
+                  <span
+                    className={`text-sm font-bold tabular-nums ${
+                      operation.type_operation === "REVENU"
+                        ? "text-emerald-600"
+                        : "text-rose-600"
+                    }`}
+                  >
+                    {formatMontantSigne(operation.montant, operation.type_operation)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="border-t border-slate-100 px-4 py-2.5">
+            <Link
+              href="/centre/operations"
+              className="text-sm font-medium text-indigo-600 hover:underline"
+            >
+              Voir toutes les opérations
+            </Link>
+          </div>
         </section>
 
-        <section className="rounded-lg border border-gray-200 bg-white p-4">
-          <h2 className="mb-3 text-base font-medium text-gray-900">Par catégorie</h2>
-          {data.par_categorie.length === 0 && (
-            <p className="text-sm text-gray-500">Rien à afficher pour le moment.</p>
+        <section className="card">
+          <h2 className="px-4 pt-3.5 text-sm font-bold">Répartition par catégorie</h2>
+          {data.par_categorie.length === 0 ? (
+            <p className="px-4 py-6 text-sm text-slate-500">
+              Rien à afficher pour le moment.
+            </p>
+          ) : (
+            <div className="space-y-2.5 px-4 py-3.5">
+              {data.par_categorie.map((ligne) => (
+                <BarRow
+                  key={ligne.category_id}
+                  label={ligne.category}
+                  value={ligne.total}
+                  ratio={(Number(ligne.total) || 0) / maxCategorie}
+                  tone={ligne.type_operation === "REVENU" ? "revenu" : "depense"}
+                />
+              ))}
+            </div>
           )}
-          <ul className="divide-y divide-gray-100">
-            {data.par_categorie.map((ligne) => (
-              <li key={ligne.category_id} className="flex items-center justify-between py-2">
-                <span className="text-sm text-gray-900">{ligne.category}</span>
-                <span
-                  className={`text-sm font-medium tabular-nums ${
-                    ligne.type_operation === "REVENU" ? "text-green-700" : "text-red-700"
-                  }`}
-                >
-                  {ligne.total}
-                </span>
-              </li>
-            ))}
-          </ul>
         </section>
       </div>
     </div>

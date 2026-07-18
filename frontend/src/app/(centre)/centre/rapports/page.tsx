@@ -2,14 +2,18 @@
 
 import { useState } from "react";
 
-import { FilterBar, TotalsRow, type PeriodeFiltres } from "@/components/reports/FilterBar";
+import { FilterBar, type PeriodeFiltres } from "@/components/reports/FilterBar";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { StatsRow } from "@/components/ui/StatCard";
+import { TableCard, Td, Th, Tr } from "@/components/ui/Table";
 import {
   EmptyMessage,
   ErrorMessage,
   LoadingMessage,
+  TypeBadge,
 } from "@/components/ui/StatusMessage";
 import { useApi } from "@/hooks/useApi";
+import { formatMontant } from "@/lib/format";
 import type { CentreDashboard } from "@/types/report";
 
 export default function CentreRapportsPage() {
@@ -21,52 +25,49 @@ export default function CentreRapportsPage() {
 
   return (
     <div>
-      <PageHeader title="Rapports du centre" />
+      <PageHeader crumb={data?.centre.nom} title="Rapports du centre" />
       <FilterBar filtres={filtres} onChange={setFiltres} />
 
       {loading && <LoadingMessage />}
       {error && <ErrorMessage message={error} />}
       {data && (
         <>
-          <TotalsRow totaux={data.totaux} />
-          <h2 className="mb-3 text-base font-medium text-gray-900">
+          <StatsRow totaux={data.totaux} />
+          <h2 className="mb-3 text-sm font-bold text-slate-900">
             Totaux par catégorie
           </h2>
           {data.par_categorie.length === 0 ? (
             <EmptyMessage message="Aucune donnée sur cette période." />
           ) : (
-            <div className="max-w-2xl overflow-x-auto rounded-lg border border-gray-200 bg-white">
-              <table className="min-w-full divide-y divide-gray-200 text-sm">
-                <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
-                  <tr>
-                    <th className="px-4 py-3">Catégorie</th>
-                    <th className="px-4 py-3">Nature</th>
-                    <th className="px-4 py-3 text-right">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {data.par_categorie.map((ligne) => (
-                    <tr key={ligne.category_id}>
-                      <td className="px-4 py-3 font-medium text-gray-900">
-                        {ligne.category}
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">
-                        {ligne.type_operation === "REVENU" ? "Revenu" : "Dépense"}
-                      </td>
-                      <td
-                        className={`px-4 py-3 text-right font-medium tabular-nums ${
-                          ligne.type_operation === "REVENU"
-                            ? "text-green-700"
-                            : "text-red-700"
-                        }`}
-                      >
-                        {ligne.total}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <TableCard>
+              <thead>
+                <tr>
+                  <Th>Catégorie</Th>
+                  <Th>Nature</Th>
+                  <Th right>Total</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.par_categorie.map((ligne) => (
+                  <Tr key={ligne.category_id}>
+                    <Td className="font-semibold">{ligne.category}</Td>
+                    <Td>
+                      <TypeBadge type={ligne.type_operation} />
+                    </Td>
+                    <Td
+                      right
+                      className={`font-bold tabular-nums ${
+                        ligne.type_operation === "REVENU"
+                          ? "text-emerald-600"
+                          : "text-rose-600"
+                      }`}
+                    >
+                      {formatMontant(ligne.total)}
+                    </Td>
+                  </Tr>
+                ))}
+              </tbody>
+            </TableCard>
           )}
         </>
       )}

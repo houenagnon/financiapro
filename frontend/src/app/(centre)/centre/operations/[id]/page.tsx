@@ -39,7 +39,7 @@ export default function OperationDetailPage({
       <PageHeader title={`Opération du ${transaction.date_operation}`}>
         <button
           onClick={supprimer}
-          className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50"
+          className="btn-ghost border-rose-300 text-rose-700 hover:bg-rose-50"
         >
           Supprimer
         </button>
@@ -48,28 +48,28 @@ export default function OperationDetailPage({
       {actionError && <ErrorMessage message={actionError} />}
 
       <div className="grid max-w-xl gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <p className="text-xs uppercase text-gray-500">Type</p>
-          <p className="mt-1 text-sm font-medium text-gray-900">
+        <div className="card p-4">
+          <p className="text-xs uppercase text-slate-500">Type</p>
+          <p className="mt-1 text-sm font-medium text-slate-900">
             {transaction.type_operation === "REVENU" ? "Revenu" : "Dépense"}
           </p>
         </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <p className="text-xs uppercase text-gray-500">Montant</p>
-          <p className="mt-1 text-sm font-medium tabular-nums text-gray-900">
+        <div className="card p-4">
+          <p className="text-xs uppercase text-slate-500">Montant</p>
+          <p className="mt-1 text-sm font-medium tabular-nums text-slate-900">
             {transaction.montant}
           </p>
         </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-4 sm:col-span-2">
-          <p className="text-xs uppercase text-gray-500">Catégorie</p>
-          <p className="mt-1 text-sm font-medium text-gray-900">
+        <div className="card p-4 sm:col-span-2">
+          <p className="text-xs uppercase text-slate-500">Catégorie</p>
+          <p className="mt-1 text-sm font-medium text-slate-900">
             {transaction.category_detail.nom}
           </p>
         </div>
         {transaction.description && (
-          <div className="rounded-lg border border-gray-200 bg-white p-4 sm:col-span-2">
-            <p className="text-xs uppercase text-gray-500">Description</p>
-            <p className="mt-1 text-sm text-gray-700">{transaction.description}</p>
+          <div className="card p-4 sm:col-span-2">
+            <p className="text-xs uppercase text-slate-500">Description</p>
+            <p className="mt-1 text-sm text-slate-700">{transaction.description}</p>
           </div>
         )}
       </div>

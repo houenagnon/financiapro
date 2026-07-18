@@ -32,7 +32,7 @@ export function RoleGuard({
 
   if (loading || !user || !roles.includes(user.role)) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-gray-500">
+      <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">
         Chargement…
       </div>
     );

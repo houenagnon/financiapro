@@ -26,7 +26,7 @@ type CentreFormInput = z.input<typeof centreSchema>;
 type CentreFormValues = z.output<typeof centreSchema>;
 
 const inputClass =
-  "mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
+  "input-base mt-1";
 
 function Field({
   label,
@@ -39,11 +39,11 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700">
+      <label className="block text-sm font-medium text-slate-700">
         {label}
         {children}
       </label>
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-sm text-rose-600">{error}</p>}
     </div>
   );
 }
@@ -80,8 +80,8 @@ export function CentreForm({ typesCentres }: { typesCentres: TypeCentre[] }) {
       className="max-w-2xl space-y-6"
       noValidate
     >
-      <section className="rounded-lg border border-gray-200 bg-white p-6">
-        <h2 className="mb-4 text-base font-medium text-gray-900">Le centre</h2>
+      <section className="card p-6">
+        <h2 className="mb-4 text-base font-medium text-slate-900">Le centre</h2>
         <div className="space-y-4">
           <Field label="Nom du centre" error={errors.nom?.message}>
             <input type="text" {...register("nom")} className={inputClass} />
@@ -102,11 +102,11 @@ export function CentreForm({ typesCentres }: { typesCentres: TypeCentre[] }) {
         </div>
       </section>
 
-      <section className="rounded-lg border border-gray-200 bg-white p-6">
-        <h2 className="mb-1 text-base font-medium text-gray-900">
+      <section className="card p-6">
+        <h2 className="mb-1 text-base font-medium text-slate-900">
           L&apos;économe principal
         </h2>
-        <p className="mb-4 text-sm text-gray-500">
+        <p className="mb-4 text-sm text-slate-500">
           Ce compte est créé en même temps que le centre et en devient responsable.
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -131,14 +131,14 @@ export function CentreForm({ typesCentres }: { typesCentres: TypeCentre[] }) {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="btn-primary"
         >
           {isSubmitting ? "Création…" : "Créer le centre"}
         </button>
         <button
           type="button"
           onClick={() => router.back()}
-          className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          className="btn-ghost"
         >
           Annuler
         </button>

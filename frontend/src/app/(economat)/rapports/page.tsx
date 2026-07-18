@@ -4,12 +4,14 @@ import { useState } from "react";
 
 import { FilterBar, type PeriodeFiltres } from "@/components/reports/FilterBar";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { TableCard, Td, Th, Tr } from "@/components/ui/Table";
 import {
   EmptyMessage,
   ErrorMessage,
   LoadingMessage,
 } from "@/components/ui/StatusMessage";
 import { useApi } from "@/hooks/useApi";
+import { formatMontant } from "@/lib/format";
 import type { ComparaisonCentres } from "@/types/report";
 
 export default function RapportsPage() {
@@ -22,9 +24,11 @@ export default function RapportsPage() {
     },
   );
 
+  const maxAbsSolde = Math.max(1, ...(data ?? []).map((c) => Math.abs(Number(c.solde) || 0)));
+
   return (
     <div>
-      <PageHeader title="Comparaison des centres" />
+      <PageHeader crumb="Économat central" title="Comparaison des centres" />
       <FilterBar filtres={filtres} onChange={setFiltres} />
 
       {loading && <LoadingMessage />}
@@ -33,36 +37,50 @@ export default function RapportsPage() {
         <EmptyMessage message="Aucune donnée sur cette période." />
       )}
       {data && data.length > 0 && (
-        <div className="max-w-3xl overflow-x-auto rounded-lg border border-gray-200 bg-white">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
-              <tr>
-                <th className="px-4 py-3">#</th>
-                <th className="px-4 py-3">Centre</th>
-                <th className="px-4 py-3 text-right">Revenus</th>
-                <th className="px-4 py-3 text-right">Dépenses</th>
-                <th className="px-4 py-3 text-right">Solde</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {data.map((ligne, index) => (
-                <tr key={ligne.centre_id}>
-                  <td className="px-4 py-3 text-gray-500">{index + 1}</td>
-                  <td className="px-4 py-3 font-medium text-gray-900">{ligne.centre}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-green-700">
-                    {ligne.revenus}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-red-700">
-                    {ligne.depenses}
-                  </td>
-                  <td className="px-4 py-3 text-right font-medium tabular-nums">
-                    {ligne.solde}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <TableCard>
+          <thead>
+            <tr>
+              <Th className="w-8">#</Th>
+              <Th>Centre</Th>
+              <Th right>Revenus</Th>
+              <Th right>Dépenses</Th>
+              <Th className="w-[240px]">Solde</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((ligne, index) => {
+              const solde = Number(ligne.solde) || 0;
+              const ratio = Math.abs(solde) / maxAbsSolde;
+              return (
+                <Tr key={ligne.centre_id}>
+                  <Td className="text-slate-400">{index + 1}</Td>
+                  <Td className="font-semibold">{ligne.centre}</Td>
+                  <Td right className="tabular-nums text-emerald-600">
+                    {formatMontant(ligne.revenus)}
+                  </Td>
+                  <Td right className="tabular-nums text-rose-600">
+                    {formatMontant(ligne.depenses)}
+                  </Td>
+                  <Td>
+                    <span className="flex items-center gap-2">
+                      <span className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                        <span
+                          className={`block h-full rounded-full ${
+                            solde >= 0 ? "bg-emerald-600" : "bg-rose-600"
+                          }`}
+                          style={{ width: `${Math.max(2, Math.round(ratio * 100))}%` }}
+                        />
+                      </span>
+                      <span className="font-bold tabular-nums">
+                        {formatMontant(ligne.solde)}
+                      </span>
+                    </span>
+                  </Td>
+                </Tr>
+              );
+            })}
+          </tbody>
+        </TableCard>
       )}
     </div>
   );

@@ -27,19 +27,19 @@ type CategoryFormValues = z.input<typeof categorySchema>;
 
 function TreeSection({ titre, arbres }: { titre: string; arbres: CategoryTree[] }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <h2 className="mb-3 text-base font-medium text-gray-900">{titre}</h2>
+    <div className="card p-4">
+      <h2 className="mb-3 text-base font-medium text-slate-900">{titre}</h2>
       {arbres.length === 0 && (
-        <p className="text-sm text-gray-500">Aucune catégorie.</p>
+        <p className="text-sm text-slate-500">Aucune catégorie.</p>
       )}
       <ul className="space-y-2">
         {arbres.map((racine) => (
           <li key={racine.id}>
-            <span className="text-sm font-medium text-gray-900">{racine.nom}</span>
+            <span className="text-sm font-medium text-slate-900">{racine.nom}</span>
             {racine.sous_categories.length > 0 && (
               <ul className="ml-4 mt-1 list-disc space-y-1 pl-4">
                 {racine.sous_categories.map((sous) => (
-                  <li key={sous.id} className="text-sm text-gray-600">
+                  <li key={sous.id} className="text-sm text-slate-600">
                     {sous.nom}
                   </li>
                 ))}
@@ -87,27 +87,27 @@ export default function CategoriesPage() {
 
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="mb-6 flex max-w-3xl flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-4"
+        className="mb-6 flex max-w-3xl flex-wrap items-end gap-3 card p-4"
         noValidate
       >
         <div className="min-w-40 flex-1">
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-slate-700">
             Nom
             <input
               type="text"
               placeholder="Dons, Fonctionnement…"
               {...register("nom")}
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="input-base mt-1"
             />
           </label>
-          {errors.nom && <p className="mt-1 text-sm text-red-600">{errors.nom.message}</p>}
+          {errors.nom && <p className="mt-1 text-sm text-rose-600">{errors.nom.message}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-slate-700">
             Nature
             <select
               {...register("nature")}
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="input-base mt-1"
             >
               <option value="REVENU">Revenu</option>
               <option value="DEPENSE">Dépense</option>
@@ -115,11 +115,11 @@ export default function CategoriesPage() {
           </label>
         </div>
         <div className="min-w-44">
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-slate-700">
             Sous-catégorie de (facultatif)
             <select
               {...register("parent")}
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="input-base mt-1"
             >
               <option value="">— Catégorie racine —</option>
               {racinesDeNature.map((racine) => (
@@ -133,7 +133,7 @@ export default function CategoriesPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="btn-primary"
         >
           Ajouter
         </button>

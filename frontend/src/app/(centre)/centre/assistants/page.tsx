@@ -27,7 +27,7 @@ const assistantSchema = z.object({
 
 type AssistantFormValues = z.infer<typeof assistantSchema>;
 
-const inputClass = "mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm";
+const inputClass = "input-base mt-1";
 
 export default function AssistantsPage() {
   const { user } = useAuth();
@@ -79,43 +79,43 @@ export default function AssistantsPage() {
 
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="mb-6 grid max-w-2xl gap-4 rounded-lg border border-gray-200 bg-white p-4 sm:grid-cols-2"
+        className="mb-6 grid max-w-2xl gap-4 card p-4 sm:grid-cols-2"
         noValidate
       >
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-slate-700">
             Prénom
             <input type="text" {...register("first_name")} className={inputClass} />
           </label>
           {errors.first_name && (
-            <p className="mt-1 text-sm text-red-600">{errors.first_name.message}</p>
+            <p className="mt-1 text-sm text-rose-600">{errors.first_name.message}</p>
           )}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-slate-700">
             Nom
             <input type="text" {...register("last_name")} className={inputClass} />
           </label>
           {errors.last_name && (
-            <p className="mt-1 text-sm text-red-600">{errors.last_name.message}</p>
+            <p className="mt-1 text-sm text-rose-600">{errors.last_name.message}</p>
           )}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-slate-700">
             Adresse email
             <input type="email" {...register("email")} className={inputClass} />
           </label>
           {errors.email && (
-            <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+            <p className="mt-1 text-sm text-rose-600">{errors.email.message}</p>
           )}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-slate-700">
             Mot de passe initial
             <input type="password" {...register("password")} className={inputClass} />
           </label>
           {errors.password && (
-            <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+            <p className="mt-1 text-sm text-rose-600">{errors.password.message}</p>
           )}
         </div>
         {serverError && (
@@ -127,7 +127,7 @@ export default function AssistantsPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="btn-primary"
           >
             {isSubmitting ? "Création…" : "Créer l'assistant"}
           </button>
@@ -140,9 +140,9 @@ export default function AssistantsPage() {
         <EmptyMessage message="Aucun assistant pour le moment." />
       )}
       {assistants.length > 0 && (
-        <div className="max-w-2xl overflow-x-auto rounded-lg border border-gray-200 bg-white">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
+        <div className="max-w-2xl card overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50 text-left text-xs font-medium uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">Nom</th>
                 <th className="px-4 py-3">Email</th>
@@ -150,13 +150,13 @@ export default function AssistantsPage() {
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-slate-100">
               {assistants.map((assistant) => (
                 <tr key={assistant.id}>
-                  <td className="px-4 py-3 font-medium text-gray-900">
+                  <td className="px-4 py-3 font-medium text-slate-900">
                     {assistant.first_name} {assistant.last_name}
                   </td>
-                  <td className="px-4 py-3 text-gray-500">{assistant.email}</td>
+                  <td className="px-4 py-3 text-slate-500">{assistant.email}</td>
                   <td className="px-4 py-3">
                     <ActiveBadge active={assistant.is_active} />
                   </td>
@@ -164,7 +164,7 @@ export default function AssistantsPage() {
                     {assistant.is_active && (
                       <button
                         onClick={() => deactivate(assistant)}
-                        className="text-sm text-red-600 hover:underline"
+                        className="text-sm text-rose-600 hover:underline"
                       >
                         Désactiver
                       </button>

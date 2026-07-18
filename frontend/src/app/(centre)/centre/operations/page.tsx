@@ -4,16 +4,17 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { PageHeader } from "@/components/ui/PageHeader";
+import { TableCard, Td, Th, Tr } from "@/components/ui/Table";
 import {
   EmptyMessage,
   ErrorMessage,
   LoadingMessage,
+  TypeBadge,
 } from "@/components/ui/StatusMessage";
 import { useApi } from "@/hooks/useApi";
+import { formatDate, formatMontantSigne } from "@/lib/format";
 import type { Paginated } from "@/types/api";
 import type { Transaction } from "@/types/finance";
-
-const inputClass = "rounded-md border border-gray-300 px-3 py-1.5 text-sm";
 
 export default function OperationsPage() {
   const [filtres, setFiltres] = useState({
@@ -31,35 +32,35 @@ export default function OperationsPage() {
     <div>
       <PageHeader
         title="Opérations"
-        action={{ href: "/centre/operations/nouvelle", label: "Nouvelle opération" }}
+        action={{ href: "/centre/operations/nouvelle", label: "+ Saisir des opérations" }}
       />
 
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+      <div className="mb-5 flex flex-wrap items-center gap-2.5">
         <select
           value={filtres.type_operation}
           onChange={(e) => setFiltres({ ...filtres, type_operation: e.target.value })}
-          className={inputClass}
+          className="input-base w-auto"
         >
           <option value="">Tous les types</option>
           <option value="REVENU">Revenus</option>
           <option value="DEPENSE">Dépenses</option>
         </select>
-        <label className="flex items-center gap-2 text-sm text-gray-600">
+        <label className="flex items-center gap-2 text-sm text-slate-500">
           Du
           <input
             type="date"
             value={filtres.date_debut}
             onChange={(e) => setFiltres({ ...filtres, date_debut: e.target.value })}
-            className={inputClass}
+            className="input-base w-auto"
           />
         </label>
-        <label className="flex items-center gap-2 text-sm text-gray-600">
+        <label className="flex items-center gap-2 text-sm text-slate-500">
           au
           <input
             type="date"
             value={filtres.date_fin}
             onChange={(e) => setFiltres({ ...filtres, date_fin: e.target.value })}
-            className={inputClass}
+            className="input-base w-auto"
           />
         </label>
       </div>
@@ -67,52 +68,54 @@ export default function OperationsPage() {
       {loading && <LoadingMessage />}
       {error && <ErrorMessage message={error} />}
       {data && data.results.length === 0 && (
-        <EmptyMessage message="Aucune opération sur cette période." />
+        <EmptyMessage
+          message="Aucune opération sur cette période. Saisissez vos premiers revenus et dépenses."
+          action={{ href: "/centre/operations/nouvelle", label: "Saisir des opérations" }}
+        />
       )}
       {data && data.results.length > 0 && (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
-              <tr>
-                <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Catégorie</th>
-                <th className="px-4 py-3 text-right">Montant</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {data.results.map((transaction) => (
-                <tr key={transaction.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/centre/operations/${transaction.id}`}
-                      className="text-blue-700 hover:underline"
-                    >
-                      {transaction.date_operation}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-                        transaction.type_operation === "REVENU"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {transaction.type_operation === "REVENU" ? "Revenu" : "Dépense"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {transaction.category_detail.nom}
-                  </td>
-                  <td className="px-4 py-3 text-right font-medium tabular-nums">
-                    {transaction.montant}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <TableCard>
+          <thead>
+            <tr>
+              <Th>Date</Th>
+              <Th>Type</Th>
+              <Th>Catégorie</Th>
+              <Th>Description</Th>
+              <Th right>Montant</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.results.map((transaction) => (
+              <Tr key={transaction.id}>
+                <Td>
+                  <Link
+                    href={`/centre/operations/${transaction.id}`}
+                    className="font-medium text-indigo-600 hover:underline"
+                  >
+                    {formatDate(transaction.date_operation)}
+                  </Link>
+                </Td>
+                <Td>
+                  <TypeBadge type={transaction.type_operation} />
+                </Td>
+                <Td className="text-slate-600">{transaction.category_detail.nom}</Td>
+                <Td className="max-w-[240px] truncate text-slate-400">
+                  {transaction.description || "—"}
+                </Td>
+                <Td
+                  right
+                  className={`font-bold tabular-nums ${
+                    transaction.type_operation === "REVENU"
+                      ? "text-emerald-600"
+                      : "text-rose-600"
+                  }`}
+                >
+                  {formatMontantSigne(transaction.montant, transaction.type_operation)}
+                </Td>
+              </Tr>
+            ))}
+          </tbody>
+        </TableCard>
       )}
     </div>
   );
