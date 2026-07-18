@@ -8,11 +8,18 @@ départ, aucune donnée fictive :
   - le compte Économat central si demandé via --admin-email (mot de passe
     demandé interactivement, ou lu depuis SEED_ADMIN_PASSWORD)
 
+Lancé automatiquement par build.sh à chaque déploiement : en mode non
+interactif, le compte admin n'est créé que si SEED_ADMIN_EMAIL et
+SEED_ADMIN_PASSWORD sont définis (SEED_ADMIN_FIRST_NAME/LAST_NAME
+facultatifs) ; sinon seuls les catalogues sont créés, sans faire échouer
+le build.
+
 Exemple (shell Render) :
   python manage.py seed_prod --admin-email econome.general@mondiocese.org
 """
 import getpass
 import os
+import sys
 
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
@@ -64,9 +71,12 @@ class Command(BaseCommand):
         types_crees = self._types_centre()
         categories_creees = self._categories()
 
+        # En mode automatique (build de déploiement), l'email vient de
+        # SEED_ADMIN_EMAIL ; en mode manuel, de --admin-email.
+        admin_email = options["admin_email"] or os.environ.get("SEED_ADMIN_EMAIL")
         admin_cree = False
-        if options["admin_email"]:
-            admin_cree = self._admin(options["admin_email"])
+        if admin_email:
+            admin_cree = self._admin(admin_email)
 
         self.stdout.write(self.style.SUCCESS(
             f"Seed prod OK — {types_crees} type(s) de centre et "
@@ -104,7 +114,17 @@ class Command(BaseCommand):
             return False
 
         password = os.environ.get("SEED_ADMIN_PASSWORD")
+        interactif = sys.stdin.isatty()
+
         if not password:
+            if not interactif:
+                # Build de déploiement sans SEED_ADMIN_PASSWORD : on n'échoue
+                # pas le build, le compte pourra être créé via le shell.
+                self.stdout.write(self.style.WARNING(
+                    f"SEED_ADMIN_PASSWORD absent — compte {email} non créé. "
+                    "Définissez la variable ou lancez seed_prod depuis le shell."
+                ))
+                return False
             password = getpass.getpass(f"Mot de passe pour {email} : ")
             confirmation = getpass.getpass("Confirmation : ")
             if password != confirmation:
@@ -117,8 +137,13 @@ class Command(BaseCommand):
                 "Mot de passe refusé : " + " ".join(exc.messages)
             ) from exc
 
-        prenom = input("Prénom : ").strip() or "Économat"
-        nom = input("Nom : ").strip() or "Central"
+        if interactif and not os.environ.get("SEED_ADMIN_FIRST_NAME"):
+            prenom = input("Prénom : ").strip() or "Économat"
+            nom = input("Nom : ").strip() or "Central"
+        else:
+            prenom = os.environ.get("SEED_ADMIN_FIRST_NAME", "Économat")
+            nom = os.environ.get("SEED_ADMIN_LAST_NAME", "Central")
+
         User.objects.create_user(
             email,
             password,

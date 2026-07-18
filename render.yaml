@@ -25,6 +25,12 @@ services:
         fromDatabase:
           name: financiapro-db
           property: connectionString
+      # Facultatif : création automatique du compte Économat central au
+      # premier déploiement (retirer ces variables ensuite).
+      - key: SEED_ADMIN_EMAIL
+        sync: false
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
 
 databases:
   - name: financiapro-db
