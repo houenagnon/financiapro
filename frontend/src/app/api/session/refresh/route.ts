@@ -28,9 +28,11 @@ export async function POST() {
     return NextResponse.json(data, { status: response.status });
   }
 
+  const tokens = data as { access: string; refresh?: string };
+
   // SimpleJWT tourne les refresh tokens : on remplace le cookie à chaque refresh.
-  if (data.refresh) {
-    cookieStore.set(REFRESH_COOKIE, data.refresh, {
+  if (tokens.refresh) {
+    cookieStore.set(REFRESH_COOKIE, tokens.refresh, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -39,5 +41,5 @@ export async function POST() {
     });
   }
 
-  return NextResponse.json({ access: data.access });
+  return NextResponse.json({ access: tokens.access });
 }
