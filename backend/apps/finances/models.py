@@ -13,10 +13,12 @@ class Nature(models.TextChoices):
 class Category(models.Model):
     """Catégorie ou sous-catégorie de revenu/dépense.
 
-    Catalogue global géré par l'Économat central : les centres sélectionnent
-    dans ce référentiel (pas de texte libre) pour garder des données
-    exploitables en analyse consolidée. Une sous-catégorie a un `parent` et
-    hérite obligatoirement de sa nature.
+    Deux niveaux de catalogue :
+    - `centre` null : catalogue global géré par l'Économat central
+      (peut avoir des sous-catégories) ;
+    - `centre` renseigné : catégorie propre à un centre, créée librement
+      par ses membres depuis la saisie (racine uniquement), visible et
+      utilisable par ce centre seul.
     """
 
     nom = models.CharField("nom", max_length=150)
@@ -29,6 +31,14 @@ class Category(models.Model):
         on_delete=models.PROTECT,
         related_name="sous_categories",
     )
+    centre = models.ForeignKey(
+        "centres.Centre",
+        verbose_name="centre",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="categories",
+    )
     is_active = models.BooleanField("actif", default=True)
 
     class Meta:
@@ -36,7 +46,7 @@ class Category(models.Model):
         ordering = ["nature", "nom"]
         constraints = [
             models.UniqueConstraint(
-                fields=["nom", "nature", "parent"], name="unique_categorie"
+                fields=["nom", "nature", "parent", "centre"], name="unique_categorie"
             )
         ]
 

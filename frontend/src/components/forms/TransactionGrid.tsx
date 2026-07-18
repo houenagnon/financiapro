@@ -9,7 +9,9 @@ import { z } from "zod";
 import { api, ApiClientError } from "@/lib/api-client";
 import { formatMontant } from "@/lib/format";
 import { ErrorMessage } from "@/components/ui/StatusMessage";
-import type { CategoryTree, Nature } from "@/types/finance";
+import type { Category, CategoryTree, Nature } from "@/types/finance";
+
+const NOUVELLE_CATEGORIE = "__new__";
 
 const ligneSchema = z.object({
   date_operation: z.string().min(1, "Date requise"),
@@ -56,12 +58,18 @@ export function TransactionGrid({ categoriesTree }: { categoriesTree: CategoryTr
   const [serverError, setServerError] = useState<string | null>(null);
   const [erreursLignes, setErreursLignes] = useState<Record<number, string>>({});
   const [enregistrees, setEnregistrees] = useState(0);
+  // Catalogue local, enrichi par les catégories créées à la volée.
+  const [categories, setCategories] = useState(categoriesTree);
+  const [creationLigne, setCreationLigne] = useState<number | null>(null);
+  const [nouveauNom, setNouveauNom] = useState("");
+  const [creationErreur, setCreationErreur] = useState<string | null>(null);
 
   const {
     register,
     control,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<GrilleInput, unknown, GrilleValues>({
     resolver: zodResolver(grilleSchema),
@@ -74,7 +82,7 @@ export function TransactionGrid({ categoriesTree }: { categoriesTree: CategoryTr
   const totalDepenses = totalSaisi(lignes ?? [], "DEPENSE");
 
   const optionsPour = (nature: Nature) =>
-    categoriesTree
+    categories
       .filter((c) => c.nature === nature)
       .flatMap((racine) => [
         { id: racine.id, label: racine.nom },
@@ -83,6 +91,32 @@ export function TransactionGrid({ categoriesTree }: { categoriesTree: CategoryTr
           label: `${racine.nom} › ${sous.nom}`,
         })),
       ]);
+
+  const creerCategorie = async (index: number) => {
+    const nom = nouveauNom.trim();
+    if (!nom) return;
+    setCreationErreur(null);
+    const nature = (lignes?.[index]?.type_operation ?? "REVENU") as Nature;
+    try {
+      const creee = await api<Category>("/categories/", {
+        method: "POST",
+        body: { nom, nature },
+      });
+      setCategories((existantes) => [
+        ...existantes,
+        { ...creee, sous_categories: [] },
+      ]);
+      setValue(`lignes.${index}.category`, creee.id);
+      setCreationLigne(null);
+      setNouveauNom("");
+    } catch (error) {
+      setCreationErreur(
+        error instanceof ApiClientError && error.error.fields
+          ? Object.values(error.error.fields).flat().join(" ")
+          : "Création impossible.",
+      );
+    }
+  };
 
   const onSubmit = async (values: GrilleValues) => {
     setServerError(null);
@@ -182,17 +216,77 @@ export function TransactionGrid({ categoriesTree }: { categoriesTree: CategoryTr
                     </select>
                   </td>
                   <td className="w-[230px] border border-slate-200">
-                    <select
-                      {...register(`lignes.${index}.category`)}
-                      className={cellInput}
-                    >
-                      <option value="">—</option>
-                      {optionsPour(nature).map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                    {creationLigne === index ? (
+                      <div className="flex items-center gap-1 p-1">
+                        <input
+                          type="text"
+                          autoFocus
+                          value={nouveauNom}
+                          onChange={(e) => setNouveauNom(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              creerCategorie(index);
+                            }
+                            if (e.key === "Escape") setCreationLigne(null);
+                          }}
+                          placeholder="Nom de la catégorie"
+                          className="input-base flex-1 px-2 py-1 text-[13px]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => creerCategorie(index)}
+                          className="rounded bg-indigo-600 px-2 py-1 text-xs font-semibold text-white hover:bg-indigo-700"
+                        >
+                          OK
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCreationLigne(null);
+                            setNouveauNom("");
+                            setCreationErreur(null);
+                          }}
+                          className="rounded px-1.5 py-1 text-xs text-slate-400 hover:text-slate-600"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      (() => {
+                        const champ = register(`lignes.${index}.category`);
+                        return (
+                          <select
+                            {...champ}
+                            onChange={(e) => {
+                              if (e.target.value === NOUVELLE_CATEGORIE) {
+                                setCreationLigne(index);
+                                setNouveauNom("");
+                                setCreationErreur(null);
+                                return;
+                              }
+                              champ.onChange(e);
+                            }}
+                            className={cellInput}
+                          >
+                            <option value="">—</option>
+                            {optionsPour(nature).map((option) => (
+                              <option key={option.id} value={option.id}>
+                                {option.label}
+                              </option>
+                            ))}
+                            <option value={NOUVELLE_CATEGORIE}>
+                              ＋ Créer une catégorie…
+                            </option>
+                          </select>
+                        );
+                      })()
+                    )}
+                    {creationLigne === index && creationErreur && (
+                      <p className="px-3 pb-1.5 text-xs text-rose-600">
+                        {creationErreur}
+                      </p>
+                    )}
                     {ligneErreurs?.category && (
                       <p className="px-3 pb-1.5 text-xs text-rose-600">
                         {ligneErreurs.category.message}

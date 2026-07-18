@@ -68,12 +68,15 @@ class TestCategories:
         )
         assert response.status_code == 400
 
-    def test_econome_ne_peut_pas_creer_de_categorie(self, deux_centres, categories, client_for):
+    def test_categorie_econome_rattachee_a_son_centre_pas_au_global(
+        self, deux_centres, categories, client_for
+    ):
         econome = deux_centres[0].econome_principal
         response = client_for(econome).post(
             "/api/categories/", {"nom": "Perso", "nature": "REVENU"}
         )
-        assert response.status_code == 403
+        assert response.status_code == 201
+        assert Category.objects.get(nom="Perso").centre == deux_centres[0]
 
     def test_tree_regroupe_les_sous_categories(self, economat, categories, client_for):
         response = client_for(economat).get("/api/categories/tree/")
@@ -174,3 +177,78 @@ class TestTransactions:
             "/api/transactions/?date_debut=2026-07-05&date_fin=2026-07-15"
         )
         assert response.data["count"] == 1
+
+
+class TestCategoriesParCentre:
+    def test_econome_cree_une_categorie_pour_son_centre(
+        self, deux_centres, client_for
+    ):
+        econome = deux_centres[0].econome_principal
+        response = client_for(econome).post(
+            "/api/categories/", {"nom": "Kermesse", "nature": "REVENU"}
+        )
+        assert response.status_code == 201
+        categorie = Category.objects.get(nom="Kermesse")
+        assert categorie.centre == deux_centres[0]
+
+    def test_categorie_de_centre_invisible_pour_autre_centre(
+        self, deux_centres, client_for
+    ):
+        centre_a, centre_b = deux_centres
+        Category.objects.create(
+            nom="Kermesse", nature=Nature.REVENU, centre=centre_a
+        )
+        response = client_for(centre_b.econome_principal).get("/api/categories/")
+        noms = {c["nom"] for c in response.data["results"]}
+        assert "Kermesse" not in noms
+
+    def test_categorie_de_centre_inutilisable_par_autre_centre(
+        self, deux_centres, client_for
+    ):
+        centre_a, centre_b = deux_centres
+        categorie = Category.objects.create(
+            nom="Kermesse", nature=Nature.REVENU, centre=centre_a
+        )
+        response = client_for(centre_b.econome_principal).post(
+            "/api/transactions/",
+            {
+                "type_operation": "REVENU",
+                "montant": "100.00",
+                "date_operation": "2026-07-15",
+                "category": categorie.pk,
+            },
+        )
+        assert response.status_code == 400
+
+    def test_pas_de_sous_categorie_pour_un_centre(
+        self, deux_centres, categories, client_for
+    ):
+        econome = deux_centres[0].econome_principal
+        response = client_for(econome).post(
+            "/api/categories/",
+            {"nom": "Sous", "nature": "REVENU", "parent": categories["don"].pk},
+        )
+        assert response.status_code == 400
+
+    def test_centre_ne_modifie_pas_le_catalogue_global(
+        self, deux_centres, categories, client_for
+    ):
+        econome = deux_centres[0].econome_principal
+        response = client_for(econome).patch(
+            f"/api/categories/{categories['don'].pk}/", {"nom": "Piraté"}
+        )
+        assert response.status_code == 403
+
+    def test_economat_cree_toujours_en_global(self, economat, client_for):
+        response = client_for(economat).post(
+            "/api/categories/", {"nom": "Global", "nature": "REVENU"}
+        )
+        assert response.status_code == 201
+        assert Category.objects.get(nom="Global").centre is None
+
+    def test_tree_inclut_les_categories_du_centre(self, deux_centres, categories, client_for):
+        centre_a = deux_centres[0]
+        Category.objects.create(nom="Kermesse", nature=Nature.REVENU, centre=centre_a)
+        response = client_for(centre_a.econome_principal).get("/api/categories/tree/")
+        noms = {c["nom"] for c in response.data}
+        assert "Kermesse" in noms and "Dons" in noms

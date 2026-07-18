@@ -6,6 +6,8 @@ export interface Category {
   nom: string;
   nature: Nature;
   parent: number | null;
+  /** null = catalogue global (Économat central), sinon catégorie propre au centre. */
+  centre: number | null;
   is_active: boolean;
 }
 
@@ -13,6 +15,7 @@ export interface CategoryTree {
   id: number;
   nom: string;
   nature: Nature;
+  centre: number | null;
   is_active: boolean;
   sous_categories: CategoryTree[];
 }
