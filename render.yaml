@@ -1,0 +1,34 @@
+# Blueprint Render — https://render.com/docs/blueprint-spec
+# Déploie le backend Django + une base PostgreSQL managée.
+# Le frontend est déployé séparément sur Vercel.
+services:
+  - type: web
+    name: financiapro-api
+    runtime: python
+    rootDir: backend
+    buildCommand: ./build.sh
+    startCommand: gunicorn config.wsgi:application
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.prod
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_ALLOWED_HOSTS
+        sync: false # ex: financiapro-api.onrender.com
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false # ex: https://financiapro.vercel.app
+      - key: DJANGO_TIME_ZONE
+        value: UTC
+      - key: PYTHON_VERSION
+        value: 3.12.2
+      - key: DATABASE_URL
+        fromDatabase:
+          name: financiapro-db
+          property: connectionString
+
+databases:
+  - name: financiapro-db
+    plan: free
+    # ⚠️ Le plan free Postgres de Render expire après 30 jours ;
+    # passer sur un plan payant (ou un autre hébergeur Postgres) avant
+    # tout usage réel.

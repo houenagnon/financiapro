@@ -20,7 +20,7 @@ Assistants**.
 | Composant | Choix |
 |---|---|
 | Backend | Django + Django REST Framework |
-| Base de données | SQLite |
+| Base de données | SQLite en dev, PostgreSQL en prod (`DATABASE_URL`) |
 | Frontend | Next.js (TypeScript) |
 | Style frontend | Tailwind CSS |
 | Formulaires & validation frontend | react-hook-form + zod |
@@ -28,10 +28,10 @@ Assistants**.
 | Déploiement frontend | Vercel |
 | Déploiement backend | Render |
 
-> ⚠️ SQLite sur Render utilise un disque éphémère par défaut (données
-> perdues à chaque redeploy/restart sauf disque persistant payant). À
-> activer un disque persistant Render ou prévoir une migration vers
-> PostgreSQL avant tout usage réel.
+> La prod utilise la base PostgreSQL managée déclarée dans `render.yaml`
+> (⚠️ plan free : expire après 30 jours — passer sur un plan payant avant
+> usage réel). En dev, SQLite par défaut ; exporter `DATABASE_URL` pour
+> travailler sur PostgreSQL en local.
 
 ## Entités métier (MVP)
 
@@ -133,6 +133,27 @@ GET    /api/centre/dashboard/
 
 Hors périmètre MVP : rappels email/SMS, journal d'audit détaillé, pièces
 justificatives, budgets, projets/dons nominatifs, stocks, immobilisations.
+
+## Déploiement
+
+**Backend (Render)** — blueprint `render.yaml` à la racine :
+- Build : `backend/build.sh` (pip install prod, collectstatic, migrate)
+- Start : `gunicorn config.wsgi:application`
+- Variables : `DJANGO_SETTINGS_MODULE=config.settings.prod`,
+  `DJANGO_SECRET_KEY` (générée), `DJANGO_ALLOWED_HOSTS` (domaine Render),
+  `CORS_ALLOWED_ORIGINS` (domaine Vercel), `DATABASE_URL` (liée
+  automatiquement à la base `financiapro-db` du blueprint)
+
+**Frontend (Vercel)** — importer le repo, Root Directory = `frontend/` :
+- Variable : `NEXT_PUBLIC_API_URL` = URL du backend Render
+
+**Commandes utiles**
+- Tests backend : `cd backend && .venv/bin/pytest`
+- Lint backend : `cd backend && .venv/bin/ruff check .`
+- Lint frontend : `cd frontend && npm run lint`
+- Données de démo : `python manage.py seed_demo` (mot de passe `Demo2026!`)
+- npm : toujours utiliser `--registry https://registry.npmjs.org/` (miroir
+  par défaut injoignable sur cette machine)
 
 ## Documentation
 
