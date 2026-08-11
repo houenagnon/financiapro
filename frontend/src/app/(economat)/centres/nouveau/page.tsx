@@ -1,6 +1,6 @@
 "use client";
 
-import { CentreForm } from "@/components/forms/CentreForm";
+import { CentresGrid } from "@/components/forms/CentresGrid";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ErrorMessage, LoadingMessage } from "@/components/ui/StatusMessage";
 import { useApi } from "@/hooks/useApi";
@@ -13,10 +13,14 @@ export default function NouveauCentrePage() {
 
   return (
     <div>
-      <PageHeader title="Nouveau centre" />
+      <PageHeader title="Nouveaux centres" />
+      <p className="mb-4 text-sm text-slate-500">
+        Créez un ou plusieurs centres d&apos;un coup, chacun avec son économe
+        principal — comme dans un tableur.
+      </p>
       {loading && <LoadingMessage />}
       {error && <ErrorMessage message={error} />}
-      {data && <CentreForm typesCentres={typesActifs} />}
+      {data && <CentresGrid typesCentres={typesActifs} />}
     </div>
   );
 }

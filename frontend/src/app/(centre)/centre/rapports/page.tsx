@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { BarRow } from "@/components/ui/BarRow";
+import { ChartPanel } from "@/components/charts/ChartPanel";
 import { FilterBar, type PeriodeFiltres } from "@/components/reports/FilterBar";
 import {
   POLICES,
@@ -49,10 +49,14 @@ export default function CentreRapportsPage() {
 
   const loading = registre.loading || dashboard.loading;
   const error = registre.error || dashboard.error;
-  const maxCategorie = Math.max(
-    1,
-    ...(dashboard.data?.par_categorie.map((c) => Number(c.total) || 0) ?? []),
-  );
+  const repartitionRevenus =
+    dashboard.data?.par_categorie
+      .filter((c) => c.type_operation === "REVENU")
+      .map((c) => ({ label: c.category, value: Number(c.total) || 0 })) ?? [];
+  const repartitionDepenses =
+    dashboard.data?.par_categorie
+      .filter((c) => c.type_operation === "DEPENSE")
+      .map((c) => ({ label: c.category, value: Number(c.total) || 0 })) ?? [];
 
   return (
     <div>
@@ -108,24 +112,15 @@ export default function CentreRapportsPage() {
 
           <StatsRow totaux={dashboard.data.totaux} />
 
-          <h2 className="mb-3 text-sm font-bold text-slate-900">
-            Répartition par catégorie (période)
-          </h2>
-          {dashboard.data.par_categorie.length === 0 ? (
-            <p className="mb-5 text-sm text-slate-500">Aucune donnée sur cette période.</p>
-          ) : (
-            <div className="mb-6 space-y-2.5 rounded-lg border border-slate-200 bg-white px-4 py-3.5">
-              {dashboard.data.par_categorie.map((ligne) => (
-                <BarRow
-                  key={ligne.category_id}
-                  label={ligne.category}
-                  value={ligne.total}
-                  ratio={(Number(ligne.total) || 0) / maxCategorie}
-                  tone={ligne.type_operation === "REVENU" ? "revenu" : "depense"}
-                />
-              ))}
-            </div>
-          )}
+          <div className="mb-6">
+            <ChartPanel
+              titre="Évolution mensuelle"
+              serieMensuelle={dashboard.data.serie_mensuelle}
+              repartitionRevenus={repartitionRevenus}
+              repartitionDepenses={repartitionDepenses}
+              repartitionTitre="Répartition par catégorie (période)"
+            />
+          </div>
 
           <h2 className="mb-3 text-sm font-bold text-slate-900">
             Registre détaillé{tiers || category ? " (filtré)" : ""}

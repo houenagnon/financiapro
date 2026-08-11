@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { ChartPanel } from "@/components/charts/ChartPanel";
 import { FilterBar, type PeriodeFiltres } from "@/components/reports/FilterBar";
 import {
   POLICES,
@@ -19,22 +20,30 @@ import {
 } from "@/components/ui/StatusMessage";
 import { useApi } from "@/hooks/useApi";
 import { formatDate, formatMontant } from "@/lib/format";
-import type { ComparaisonCentres } from "@/types/report";
+import type { ComparaisonCentres, RapportConsolide } from "@/types/report";
 
 export default function RapportsPage() {
   const [filtres, setFiltres] = useState<PeriodeFiltres>({ date_debut: "", date_fin: "" });
   const [police, setPolice] = useState<PoliceImpression>("sans");
   const [taille, setTaille] = useState<TailleImpression>("base");
 
+  const periodeParams = {
+    date_debut: filtres.date_debut || undefined,
+    date_fin: filtres.date_fin || undefined,
+  };
   const { data, loading, error } = useApi<ComparaisonCentres>(
     "/rapports/comparaison-centres/",
-    {
-      date_debut: filtres.date_debut || undefined,
-      date_fin: filtres.date_fin || undefined,
-    },
+    periodeParams,
   );
+  // Fetché uniquement pour sa série mensuelle (déjà calculée par le back) —
+  // même ChartPanel que sur la vue consolidée.
+  const consolide = useApi<RapportConsolide>("/rapports/consolide/", periodeParams);
 
   const maxAbsSolde = Math.max(1, ...(data ?? []).map((c) => Math.abs(Number(c.solde) || 0)));
+  const repartitionRevenus =
+    data?.map((c) => ({ label: c.centre, value: Number(c.revenus) || 0 })) ?? [];
+  const repartitionDepenses =
+    data?.map((c) => ({ label: c.centre, value: Number(c.depenses) || 0 })) ?? [];
 
   return (
     <div>
@@ -67,6 +76,16 @@ export default function RapportsPage() {
               {filtres.date_fin ? formatDate(filtres.date_fin) : "aujourd'hui"} — imprimé le{" "}
               {formatDate(new Date().toISOString().slice(0, 10))}
             </p>
+          </div>
+
+          <div className="mb-6">
+            <ChartPanel
+              titre="Évolution mensuelle (tous centres)"
+              serieMensuelle={consolide.data?.serie_mensuelle ?? []}
+              repartitionRevenus={repartitionRevenus}
+              repartitionDepenses={repartitionDepenses}
+              repartitionTitre="Répartition par centre"
+            />
           </div>
 
           <TableCard>

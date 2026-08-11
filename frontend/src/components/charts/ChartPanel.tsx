@@ -39,7 +39,7 @@ export function ChartPanel({
         <h2 className="text-sm font-bold text-slate-900">
           {vue === "repartition" ? repartitionTitre : titre}
         </h2>
-        <div className="flex gap-1 rounded-lg bg-slate-100 p-1">
+        <div className="no-print flex gap-1 rounded-lg bg-slate-100 p-1">
           {ONGLETS.map((onglet) => (
             <button
               key={onglet.id}
