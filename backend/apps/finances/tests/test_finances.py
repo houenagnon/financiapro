@@ -178,6 +178,42 @@ class TestTransactions:
         )
         assert response.data["count"] == 1
 
+    def test_filtre_par_tiers(self, deux_centres, categories, client_for):
+        centre = deux_centres[0]
+        Transaction.objects.create(
+            centre=centre, type_operation="REVENU", montant="50.00",
+            date_operation="2026-07-01", category=categories["don"],
+            tiers="Boutique Excel", saisi_par=centre.econome_principal,
+        )
+        Transaction.objects.create(
+            centre=centre, type_operation="REVENU", montant="50.00",
+            date_operation="2026-07-02", category=categories["don"],
+            tiers="Famille Koudjo", saisi_par=centre.econome_principal,
+        )
+        response = client_for(centre.econome_principal).get(
+            "/api/transactions/?tiers=excel"
+        )
+        assert response.data["count"] == 1
+        assert response.data["results"][0]["tiers"] == "Boutique Excel"
+
+    def test_tiers_et_notes_enregistres(self, deux_centres, categories, client_for):
+        econome = deux_centres[0].econome_principal
+        response = client_for(econome).post(
+            "/api/transactions/",
+            {
+                "type_operation": "DEPENSE",
+                "montant": "75.00",
+                "date_operation": "2026-07-15",
+                "category": categories["fonctionnement"].pk,
+                "tiers": "Garage Central",
+                "notes": "Vidange véhicule",
+            },
+        )
+        assert response.status_code == 201
+        transaction = Transaction.objects.get()
+        assert transaction.tiers == "Garage Central"
+        assert transaction.notes == "Vidange véhicule"
+
 
 class TestCategoriesParCentre:
     def test_econome_cree_une_categorie_pour_son_centre(

@@ -33,14 +33,17 @@ export function Th({
 export function Td({
   children,
   right,
+  colSpan,
   className = "",
 }: {
   children?: ReactNode;
   right?: boolean;
+  colSpan?: number;
   className?: string;
 }) {
   return (
     <td
+      colSpan={colSpan}
       className={`border-b border-slate-100 px-4 py-3 ${
         right ? "text-right" : ""
       } ${className}`}

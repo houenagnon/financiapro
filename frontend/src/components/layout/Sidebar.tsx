@@ -65,7 +65,7 @@ export function Sidebar() {
   return (
     <>
       {/* Desktop : sidebar sombre */}
-      <aside className="hidden w-[230px] shrink-0 flex-col bg-slate-900 p-3 text-slate-300 md:flex">
+      <aside className="no-print hidden w-[230px] shrink-0 flex-col bg-slate-900 p-3 text-slate-300 md:flex">
         <div className="flex items-center gap-2.5 px-3 pb-5 pt-1">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-600 text-[15px] font-extrabold text-white">
             F
@@ -122,7 +122,7 @@ export function Sidebar() {
       </aside>
 
       {/* Mobile : barre de navigation inférieure */}
-      <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-slate-200 bg-white md:hidden">
+      <nav className="no-print fixed inset-x-0 bottom-0 z-20 flex border-t border-slate-200 bg-white md:hidden">
         {items.slice(0, 5).map((item) => (
           <Link
             key={item.href}

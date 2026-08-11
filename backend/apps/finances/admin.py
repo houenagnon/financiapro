@@ -17,8 +17,10 @@ class TransactionAdmin(admin.ModelAdmin):
         "centre",
         "type_operation",
         "montant",
+        "tiers",
         "category",
         "saisi_par",
     ]
     list_filter = ["type_operation", "centre"]
+    search_fields = ["tiers", "notes"]
     date_hierarchy = "date_operation"

@@ -5,9 +5,15 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { ErrorMessage, LoadingMessage } from "@/components/ui/StatusMessage";
 import { useApi } from "@/hooks/useApi";
 import type { CategoryTree } from "@/types/finance";
+import type { CentreDashboard } from "@/types/report";
 
 export default function NouvelleOperationPage() {
-  const { data, loading, error } = useApi<CategoryTree[]>("/categories/tree/");
+  const categoriesRequest = useApi<CategoryTree[]>("/categories/tree/");
+  // Le solde actuel du centre sert de point de départ à la colonne Solde.
+  const dashboardRequest = useApi<CentreDashboard>("/centre/dashboard/");
+
+  const loading = categoriesRequest.loading || dashboardRequest.loading;
+  const error = categoriesRequest.error || dashboardRequest.error;
 
   return (
     <div>
@@ -18,7 +24,12 @@ export default function NouvelleOperationPage() {
       </p>
       {loading && <LoadingMessage />}
       {error && <ErrorMessage message={error} />}
-      {data && <TransactionGrid categoriesTree={data} />}
+      {categoriesRequest.data && dashboardRequest.data && (
+        <TransactionGrid
+          categoriesTree={categoriesRequest.data}
+          soldeInitial={dashboardRequest.data.totaux.solde}
+        />
+      )}
     </div>
   );
 }

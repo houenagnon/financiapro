@@ -29,7 +29,8 @@ export interface Transaction {
   date_operation: string;
   category: number;
   category_detail: Category;
-  description: string;
+  tiers: string;
+  notes: string;
   saisi_par: number;
   date_creation: string;
   date_modification: string;

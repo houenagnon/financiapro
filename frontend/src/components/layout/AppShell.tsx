@@ -17,7 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Topbar mobile uniquement : marque + profil + déconnexion */}
-        <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-2.5 md:hidden">
+        <header className="no-print flex items-center justify-between border-b border-slate-200 bg-white px-4 py-2.5 md:hidden">
           <span className="flex items-center gap-2">
             <span className="grid h-7 w-7 place-items-center rounded-lg bg-indigo-600 text-sm font-extrabold text-white">
               F

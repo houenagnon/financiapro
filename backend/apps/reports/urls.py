@@ -1,6 +1,11 @@
 from django.urls import path
 
-from .views import CentreDashboardView, ComparaisonCentresView, ConsolideView
+from .views import (
+    CentreDashboardView,
+    ComparaisonCentresView,
+    ConsolideView,
+    RegistreView,
+)
 
 urlpatterns = [
     path("rapports/consolide/", ConsolideView.as_view(), name="rapport-consolide"),
@@ -10,4 +15,5 @@ urlpatterns = [
         name="rapport-comparaison-centres",
     ),
     path("centre/dashboard/", CentreDashboardView.as_view(), name="centre-dashboard"),
+    path("centre/registre/", RegistreView.as_view(), name="centre-registre"),
 ]

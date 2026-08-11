@@ -92,7 +92,11 @@ class Transaction(models.Model):
         on_delete=models.PROTECT,
         related_name="transactions",
     )
-    description = models.TextField("description", blank=True)
+    tiers = models.CharField(
+        "tiers", max_length=200, blank=True,
+        help_text="Personne ou organisme concerné (qui a payé / qui a reçu).",
+    )
+    notes = models.TextField("notes", blank=True)
     saisi_par = models.ForeignKey(
         "accounts.User",
         verbose_name="saisi par",

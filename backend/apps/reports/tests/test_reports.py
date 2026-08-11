@@ -116,3 +116,54 @@ class TestCentreDashboard:
 
     def test_interdit_a_l_economat(self, economat, donnees, client_for):
         assert client_for(economat).get("/api/centre/dashboard/").status_code == 403
+
+
+class TestRegistre:
+    def test_solde_cumulatif_ordre_chronologique(self, donnees, client_for):
+        # Centre A : +1000 (10 juil.), -300 (11 juil.) → solde 700 au 11 juil.
+        econome = donnees["a"].econome_principal
+        response = client_for(econome).get("/api/centre/registre/")
+        assert response.status_code == 200
+        operations = response.data["operations"]
+        assert [o["solde"] for o in operations] == ["1000.00", "700.00"]
+        assert response.data["solde_initial"] == "0.00"
+        assert response.data["totaux"]["solde"] == "700.00"
+
+    def test_solde_initial_tient_compte_de_l_historique_avant_periode(
+        self, donnees, client_for
+    ):
+        econome = donnees["a"].econome_principal
+        # On ne regarde que la journée du 11 juillet : le solde d'ouverture
+        # doit intégrer le +1000 du 10 juillet, jamais affiché dans la liste.
+        response = client_for(econome).get(
+            "/api/centre/registre/?date_debut=2026-07-11&date_fin=2026-07-11"
+        )
+        assert response.data["solde_initial"] == "1000.00"
+        assert len(response.data["operations"]) == 1
+        assert response.data["operations"][0]["solde"] == "700.00"
+
+    def test_filtre_tiers_ne_fausse_pas_le_solde_initial(self, donnees, client_for):
+        centre = donnees["a"]
+        econome = centre.econome_principal
+        Transaction.objects.create(
+            centre=centre, type_operation="REVENU", montant="200.00",
+            date_operation="2026-07-12", category=list(centre.transactions.all())[0].category,
+            tiers="Boutique Excel", saisi_par=econome,
+        )
+        # Le solde d'ouverture au 12 juillet doit refléter TOUT l'historique
+        # (1000 - 300 = 700), même si on filtre ensuite sur un seul tiers.
+        response = client_for(econome).get(
+            "/api/centre/registre/?date_debut=2026-07-12&tiers=Excel"
+        )
+        assert response.data["solde_initial"] == "700.00"
+        assert len(response.data["operations"]) == 1
+        assert response.data["operations"][0]["solde"] == "900.00"
+
+    def test_registre_isole_par_centre(self, donnees, client_for):
+        econome_b = donnees["b"].econome_principal
+        response = client_for(econome_b).get("/api/centre/registre/")
+        assert len(response.data["operations"]) == 1
+        assert response.data["operations"][0]["solde"] == "500.00"
+
+    def test_economat_interdit(self, economat, client_for):
+        assert client_for(economat).get("/api/centre/registre/").status_code == 403

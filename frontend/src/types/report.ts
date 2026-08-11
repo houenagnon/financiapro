@@ -20,6 +20,7 @@ export interface CentreDashboard {
     montant: string;
     date_operation: string;
     category: string;
+    tiers: string;
   }[];
   par_categorie: {
     category_id: number;
@@ -35,6 +36,24 @@ export interface RapportConsolide {
 }
 
 export type ComparaisonCentres = (Totaux & { centre_id: number; centre: string })[];
+
+/** Ligne du registre — solde cumulatif calculé côté serveur. */
+export interface RegistreOperation {
+  id: number;
+  date_operation: string;
+  tiers: string;
+  category: string;
+  notes: string;
+  type_operation: "REVENU" | "DEPENSE";
+  montant: string;
+  solde: string;
+}
+
+export interface Registre {
+  solde_initial: string;
+  operations: RegistreOperation[];
+  totaux: Totaux;
+}
 
 export interface DeclarationJournaliere {
   id: number;

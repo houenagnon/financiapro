@@ -39,6 +39,21 @@ def filtrer_par_periode(queryset, date_debut=None, date_fin=None):
     return queryset
 
 
+def solde_avant_date(centre_queryset, date_debut=None):
+    """Solde réel du centre à partir de tout son historique, strictement
+    avant `date_debut`. Sert de point de départ au solde cumulatif d'un
+    registre filtré (le filtre catégorie/tiers ne doit pas fausser ce
+    solde d'ouverture, qui reflète toujours l'historique complet).
+    """
+    if not date_debut:
+        return Decimal("0")
+    aggregat = centre_queryset.filter(date_operation__lt=date_debut).aggregate(
+        revenus=Sum("montant", filter=Q(type_operation=Nature.REVENU)),
+        depenses=Sum("montant", filter=Q(type_operation=Nature.DEPENSE)),
+    )
+    return (aggregat["revenus"] or Decimal("0")) - (aggregat["depenses"] or Decimal("0"))
+
+
 def rapport_consolide(queryset):
     """Totaux globaux + répartition par type de centre."""
     par_type = []

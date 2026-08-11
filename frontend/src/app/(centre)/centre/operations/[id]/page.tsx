@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { ErrorMessage, LoadingMessage } from "@/components/ui/StatusMessage";
 import { useApi } from "@/hooks/useApi";
 import { api } from "@/lib/api-client";
+import { formatDate, formatMontant } from "@/lib/format";
 import type { Transaction } from "@/types/finance";
 
 export default function OperationDetailPage({
@@ -34,9 +35,11 @@ export default function OperationDetailPage({
   if (error) return <ErrorMessage message={error} />;
   if (!transaction) return null;
 
+  const estRecu = transaction.type_operation === "REVENU";
+
   return (
     <div>
-      <PageHeader title={`Opération du ${transaction.date_operation}`}>
+      <PageHeader title={`Opération du ${formatDate(transaction.date_operation)}`}>
         <button
           onClick={supprimer}
           className="btn-ghost border-rose-300 text-rose-700 hover:bg-rose-50"
@@ -49,27 +52,33 @@ export default function OperationDetailPage({
 
       <div className="grid max-w-xl gap-4 sm:grid-cols-2">
         <div className="card p-4">
-          <p className="text-xs uppercase text-slate-500">Type</p>
-          <p className="mt-1 text-sm font-medium text-slate-900">
-            {transaction.type_operation === "REVENU" ? "Revenu" : "Dépense"}
+          <p className="text-xs uppercase text-slate-500">Dépensé</p>
+          <p className="mt-1 text-sm font-semibold tabular-nums text-rose-600">
+            {estRecu ? "—" : formatMontant(transaction.montant)}
           </p>
         </div>
         <div className="card p-4">
-          <p className="text-xs uppercase text-slate-500">Montant</p>
-          <p className="mt-1 text-sm font-medium tabular-nums text-slate-900">
-            {transaction.montant}
+          <p className="text-xs uppercase text-slate-500">Reçu</p>
+          <p className="mt-1 text-sm font-semibold tabular-nums text-emerald-600">
+            {estRecu ? formatMontant(transaction.montant) : "—"}
           </p>
         </div>
-        <div className="card p-4 sm:col-span-2">
+        <div className="card p-4">
+          <p className="text-xs uppercase text-slate-500">Tiers</p>
+          <p className="mt-1 text-sm font-medium text-slate-900">
+            {transaction.tiers || "—"}
+          </p>
+        </div>
+        <div className="card p-4">
           <p className="text-xs uppercase text-slate-500">Catégorie</p>
           <p className="mt-1 text-sm font-medium text-slate-900">
             {transaction.category_detail.nom}
           </p>
         </div>
-        {transaction.description && (
+        {transaction.notes && (
           <div className="card p-4 sm:col-span-2">
-            <p className="text-xs uppercase text-slate-500">Description</p>
-            <p className="mt-1 text-sm text-slate-700">{transaction.description}</p>
+            <p className="text-xs uppercase text-slate-500">Notes</p>
+            <p className="mt-1 text-sm text-slate-700">{transaction.notes}</p>
           </div>
         )}
       </div>

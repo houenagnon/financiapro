@@ -117,6 +117,12 @@ class Command(BaseCommand):
                     categories.append(sc)
         return categories
 
+    TIERS_DEMO = [
+        "Famille Koudjo", "Boutique Saint-Joseph", "Fournitures Excel",
+        "Ets Agossou", "Paroissien anonyme", "Garage Central",
+        "Librairie Foi & Vie", "Traiteur Bénédiction",
+    ]
+
     def _transactions(self, centre, categories):
         if centre.transactions.exists():
             return 0
@@ -133,7 +139,8 @@ class Command(BaseCommand):
                     montant=montant,
                     date_operation=date,
                     category=category,
-                    description="Donnée de démonstration",
+                    tiers=random.choice(self.TIERS_DEMO),
+                    notes="Donnée de démonstration",
                     saisi_par=centre.econome_principal,
                 )
                 crees += 1

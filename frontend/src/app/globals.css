@@ -77,3 +77,17 @@ body {
   border-radius: var(--radius-xl);
   box-shadow: 0 1px 2px rgb(15 23 42 / 0.06);
 }
+
+/* Impression : masque la navigation (sidebar, barre mobile, boutons) et ne
+ * laisse que la zone imprimable. Voir components/reports/PrintControls.tsx. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-area {
+    width: 100% !important;
+  }
+  body {
+    background: white;
+  }
+}
