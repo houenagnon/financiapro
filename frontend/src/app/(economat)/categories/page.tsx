@@ -11,6 +11,7 @@ import {
   ErrorMessage,
   LoadingMessage,
 } from "@/components/ui/StatusMessage";
+import { DeleteButton } from "@/components/ui/DeleteButton";
 import { useApi } from "@/hooks/useApi";
 import { api } from "@/lib/api-client";
 import type { CategoryTree, Nature } from "@/types/finance";
@@ -25,7 +26,15 @@ const categorySchema = z.object({
 
 type CategoryFormValues = z.input<typeof categorySchema>;
 
-function TreeSection({ titre, arbres }: { titre: string; arbres: CategoryTree[] }) {
+function TreeSection({
+  titre,
+  arbres,
+  onDeleted,
+}: {
+  titre: string;
+  arbres: CategoryTree[];
+  onDeleted: () => void;
+}) {
   return (
     <div className="card p-4">
       <h2 className="mb-3 text-base font-medium text-slate-900">{titre}</h2>
@@ -35,12 +44,29 @@ function TreeSection({ titre, arbres }: { titre: string; arbres: CategoryTree[] 
       <ul className="space-y-2">
         {arbres.map((racine) => (
           <li key={racine.id}>
-            <span className="text-sm font-medium text-slate-900">{racine.nom}</span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-medium text-slate-900">{racine.nom}</span>
+              <DeleteButton
+                path={`/categories/${racine.id}/`}
+                confirmMessage={`Supprimer la catégorie « ${racine.nom} » ?`}
+                onDeleted={onDeleted}
+                className="text-xs text-rose-600 hover:underline"
+              />
+            </div>
             {racine.sous_categories.length > 0 && (
-              <ul className="ml-4 mt-1 list-disc space-y-1 pl-4">
+              <ul className="ml-4 mt-1 space-y-1 pl-4">
                 {racine.sous_categories.map((sous) => (
-                  <li key={sous.id} className="text-sm text-slate-600">
-                    {sous.nom}
+                  <li
+                    key={sous.id}
+                    className="flex items-center justify-between gap-2 text-sm text-slate-600"
+                  >
+                    <span>• {sous.nom}</span>
+                    <DeleteButton
+                      path={`/categories/${sous.id}/`}
+                      confirmMessage={`Supprimer la sous-catégorie « ${sous.nom} » ?`}
+                      onDeleted={onDeleted}
+                      className="text-xs text-rose-600 hover:underline"
+                    />
                   </li>
                 ))}
               </ul>
@@ -147,10 +173,15 @@ export default function CategoriesPage() {
       )}
       {data && data.length > 0 && (
         <div className="grid max-w-3xl gap-4 sm:grid-cols-2">
-          <TreeSection titre="Revenus" arbres={data.filter((c) => c.nature === "REVENU")} />
+          <TreeSection
+            titre="Revenus"
+            arbres={data.filter((c) => c.nature === "REVENU")}
+            onDeleted={reload}
+          />
           <TreeSection
             titre="Dépenses"
             arbres={data.filter((c) => c.nature === "DEPENSE")}
+            onDeleted={reload}
           />
         </div>
       )}

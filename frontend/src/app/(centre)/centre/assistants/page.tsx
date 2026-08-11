@@ -6,12 +6,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import { PageHeader } from "@/components/ui/PageHeader";
+import { TableCard, Td, Th, Tr } from "@/components/ui/Table";
 import {
   ActiveBadge,
   EmptyMessage,
   ErrorMessage,
   LoadingMessage,
 } from "@/components/ui/StatusMessage";
+import { DeleteButton } from "@/components/ui/DeleteButton";
 import { useApi } from "@/hooks/useApi";
 import { api } from "@/lib/api-client";
 import { useAuth } from "@/stores/auth-store";
@@ -140,40 +142,47 @@ export default function AssistantsPage() {
         <EmptyMessage message="Aucun assistant pour le moment." />
       )}
       {assistants.length > 0 && (
-        <div className="max-w-2xl card overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50 text-left text-xs font-medium uppercase text-slate-500">
+        <div className="max-w-2xl">
+          <TableCard>
+            <thead>
               <tr>
-                <th className="px-4 py-3">Nom</th>
-                <th className="px-4 py-3">Email</th>
-                <th className="px-4 py-3">Statut</th>
-                <th className="px-4 py-3" />
+                <Th>Nom</Th>
+                <Th>Email</Th>
+                <Th>Statut</Th>
+                <Th />
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody>
               {assistants.map((assistant) => (
-                <tr key={assistant.id}>
-                  <td className="px-4 py-3 font-medium text-slate-900">
+                <Tr key={assistant.id}>
+                  <Td className="font-semibold">
                     {assistant.first_name} {assistant.last_name}
-                  </td>
-                  <td className="px-4 py-3 text-slate-500">{assistant.email}</td>
-                  <td className="px-4 py-3">
+                  </Td>
+                  <Td className="text-slate-500">{assistant.email}</Td>
+                  <Td>
                     <ActiveBadge active={assistant.is_active} />
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {assistant.is_active && (
-                      <button
-                        onClick={() => deactivate(assistant)}
-                        className="text-sm text-rose-600 hover:underline"
-                      >
-                        Désactiver
-                      </button>
-                    )}
-                  </td>
-                </tr>
+                  </Td>
+                  <Td right>
+                    <span className="flex items-center justify-end gap-3">
+                      {assistant.is_active && (
+                        <button
+                          onClick={() => deactivate(assistant)}
+                          className="text-sm text-amber-700 hover:underline"
+                        >
+                          Désactiver
+                        </button>
+                      )}
+                      <DeleteButton
+                        path={`/users/${assistant.id}/`}
+                        confirmMessage={`Supprimer définitivement ${assistant.first_name} ${assistant.last_name} ?`}
+                        onDeleted={reload}
+                      />
+                    </span>
+                  </Td>
+                </Tr>
               ))}
             </tbody>
-          </table>
+          </TableCard>
         </div>
       )}
     </div>

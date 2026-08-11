@@ -143,3 +143,28 @@ class TestErrorFormat:
         response = client.get("/api/users/")
         assert response.status_code == 403
         assert set(response.data.keys()) == {"detail", "code"}
+
+
+class TestSuppressionUtilisateur:
+    def test_economat_supprime_un_econome_sans_donnees(
+        self, economat, econome, client_for
+    ):
+        # L'économe de la fixture n'a pas de centre associé (pas de FK
+        # protégée) : la suppression doit réussir.
+        response = client_for(economat).delete(f"/api/users/{econome.pk}/")
+        assert response.status_code == 204
+        assert not User.objects.filter(pk=econome.pk).exists()
+
+    def test_impossible_de_se_supprimer_soi_meme(self, economat, client_for):
+        response = client_for(economat).delete(f"/api/users/{economat.pk}/")
+        assert response.status_code == 400
+        assert response.data["code"] == "self_delete"
+
+    def test_assistant_ne_peut_pas_supprimer(self, econome, client_for):
+        assistant = User.objects.create_user(
+            "asst2@test.local", "Passw0rd!Test",
+            first_name="A", last_name="B",
+            role=User.Role.ASSISTANT, created_by=econome,
+        )
+        response = client_for(assistant).delete(f"/api/users/{econome.pk}/")
+        assert response.status_code == 403

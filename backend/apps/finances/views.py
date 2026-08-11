@@ -5,7 +5,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.core.mixins import CentreScopedQuerysetMixin
+from apps.core.mixins import CentreScopedQuerysetMixin, ProtectedDeleteMixin
 from apps.core.permissions import IsCentreMember
 
 from .filters import TransactionFilter
@@ -17,7 +17,7 @@ from .serializers import (
 )
 
 
-class CategoryViewSet(viewsets.ModelViewSet):
+class CategoryViewSet(ProtectedDeleteMixin, viewsets.ModelViewSet):
     """Catalogue global (Économat central) + catégories propres à chaque centre.
 
     Un membre de centre voit le catalogue global et les catégories de son
@@ -27,10 +27,14 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     queryset = Category.objects.select_related("parent")
     serializer_class = CategorySerializer
-    http_method_names = ["get", "post", "patch", "head", "options"]
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["nature", "parent", "is_active"]
     permission_classes = [IsAuthenticated]
+    protected_delete_message = (
+        "Impossible de supprimer : des opérations ou sous-catégories "
+        "utilisent cette catégorie. Désactivez-la plutôt."
+    )
 
     def get_queryset(self):
         queryset = super().get_queryset()

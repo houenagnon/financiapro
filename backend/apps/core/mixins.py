@@ -1,3 +1,8 @@
+from django.db.models.deletion import ProtectedError
+from rest_framework import status
+from rest_framework.response import Response
+
+
 class CentreScopedQuerysetMixin:
     """Restreint le queryset au centre de l'utilisateur connecté.
 
@@ -19,6 +24,32 @@ class CentreScopedQuerysetMixin:
         if centre_id is None:
             return queryset.none()
         return queryset.filter(**{f"{self.centre_field}_id": centre_id})
+
+
+class ProtectedDeleteMixin:
+    """Transforme un ProtectedError (suppression bloquée par une FK PROTECT)
+    en réponse 400 lisible, plutôt qu'une erreur 500.
+
+    Utilisé partout où l'Économat central (ou l'Économe pour ses assistants)
+    doit pouvoir supprimer un enregistrement, mais où l'intégrité des
+    données financières historiques ne doit jamais être compromise :
+    la suppression n'est possible que si rien n'en dépend, sinon on invite
+    à désactiver l'enregistrement à la place.
+    """
+
+    protected_delete_message = (
+        "Impossible de supprimer : des données en dépendent. "
+        "Désactivez plutôt cet enregistrement."
+    )
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            return Response(
+                {"detail": self.protected_delete_message, "code": "protected"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class CentreAutoAssignMixin:

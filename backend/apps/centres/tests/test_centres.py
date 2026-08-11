@@ -112,3 +112,85 @@ class TestIsolationParCentre:
         response = client_for(econome_a).get("/api/users/")
         emails = {u["email"] for u in response.data["results"]}
         assert emails == {"eco-a@test.local"}
+
+
+class TestSuppression:
+    def test_econome_supprime_son_assistant(self, economat, type_paroisse, client_for):
+        creer_centre(client_for(economat), type_paroisse)
+        econome = User.objects.get(email="eco@test.local")
+        client_for(econome).post(
+            "/api/users/",
+            {
+                "email": "assistant@test.local",
+                "password": "Passw0rd!Test",
+                "first_name": "Aline",
+                "last_name": "Assistante",
+                "role": "ASSISTANT",
+            },
+        )
+        assistant = User.objects.get(email="assistant@test.local")
+        response = client_for(econome).delete(f"/api/users/{assistant.pk}/")
+        assert response.status_code == 204
+        assert not User.objects.filter(pk=assistant.pk).exists()
+
+    def test_impossible_de_supprimer_un_assistant_avec_transactions(
+        self, economat, type_paroisse, client_for
+    ):
+        from apps.finances.models import Category, Nature, Transaction
+
+        creer_centre(client_for(economat), type_paroisse)
+        econome = User.objects.get(email="eco@test.local")
+        client_for(econome).post(
+            "/api/users/",
+            {
+                "email": "assistant@test.local",
+                "password": "Passw0rd!Test",
+                "first_name": "Aline",
+                "last_name": "Assistante",
+                "role": "ASSISTANT",
+            },
+        )
+        assistant = User.objects.get(email="assistant@test.local")
+        categorie = Category.objects.create(nom="Dons", nature=Nature.REVENU)
+        Transaction.objects.create(
+            centre=econome.centre, type_operation="REVENU", montant="10.00",
+            date_operation="2026-07-15", category=categorie, saisi_par=assistant,
+        )
+        response = client_for(econome).delete(f"/api/users/{assistant.pk}/")
+        assert response.status_code == 400
+        assert response.data["code"] == "protected"
+        assert User.objects.filter(pk=assistant.pk).exists()
+
+    def test_supprimer_un_centre_vide(self, economat, type_paroisse, client_for):
+        creer_centre(client_for(economat), type_paroisse)
+        centre = Centre.objects.get(nom="Paroisse Saint-Marc")
+        response = client_for(economat).delete(f"/api/centres/{centre.pk}/")
+        assert response.status_code == 204
+        assert not Centre.objects.filter(pk=centre.pk).exists()
+        assert not User.objects.filter(email="eco@test.local").exists()
+
+    def test_impossible_de_supprimer_un_centre_avec_transactions(
+        self, economat, type_paroisse, client_for
+    ):
+        from apps.finances.models import Category, Nature, Transaction
+
+        creer_centre(client_for(economat), type_paroisse)
+        centre = Centre.objects.get(nom="Paroisse Saint-Marc")
+        categorie = Category.objects.create(nom="Dons", nature=Nature.REVENU)
+        Transaction.objects.create(
+            centre=centre, type_operation="REVENU", montant="10.00",
+            date_operation="2026-07-15", category=categorie,
+            saisi_par=centre.econome_principal,
+        )
+        response = client_for(economat).delete(f"/api/centres/{centre.pk}/")
+        assert response.status_code == 400
+        assert response.data["code"] == "protected"
+        assert Centre.objects.filter(pk=centre.pk).exists()
+
+    def test_impossible_de_supprimer_un_type_centre_utilise(
+        self, economat, type_paroisse, client_for
+    ):
+        creer_centre(client_for(economat), type_paroisse)
+        response = client_for(economat).delete(f"/api/types-centres/{type_paroisse.pk}/")
+        assert response.status_code == 400
+        assert response.data["code"] == "protected"

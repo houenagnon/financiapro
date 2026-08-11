@@ -3,12 +3,19 @@
 import { useState } from "react";
 
 import { FilterBar, type PeriodeFiltres } from "@/components/reports/FilterBar";
+import {
+  POLICES,
+  TAILLES,
+  PrintControls,
+  type PoliceImpression,
+  type TailleImpression,
+} from "@/components/reports/PrintControls";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatsRow } from "@/components/ui/StatCard";
 import { TableCard, Td, Th, Tr } from "@/components/ui/Table";
 import { ErrorMessage, LoadingMessage } from "@/components/ui/StatusMessage";
 import { useApi } from "@/hooks/useApi";
-import { formatMontant } from "@/lib/format";
+import { formatDate, formatMontant } from "@/lib/format";
 import type { Paginated } from "@/types/api";
 import type { TypeCentre } from "@/types/centre";
 import type { RapportConsolide } from "@/types/report";
@@ -16,6 +23,9 @@ import type { RapportConsolide } from "@/types/report";
 export default function DashboardPage() {
   const [filtres, setFiltres] = useState<PeriodeFiltres>({ date_debut: "", date_fin: "" });
   const [typeCentre, setTypeCentre] = useState("");
+  const [police, setPolice] = useState<PoliceImpression>("sans");
+  const [taille, setTaille] = useState<TailleImpression>("base");
+
   const types = useApi<Paginated<TypeCentre>>("/types-centres/");
   const { data, loading, error } = useApi<RapportConsolide>("/rapports/consolide/", {
     date_debut: filtres.date_debut || undefined,
@@ -27,25 +37,45 @@ export default function DashboardPage() {
     <div>
       <PageHeader crumb="Économat central" title="Vue consolidée" />
 
-      <FilterBar filtres={filtres} onChange={setFiltres}>
-        <select
-          value={typeCentre}
-          onChange={(e) => setTypeCentre(e.target.value)}
-          className="input-base w-auto"
-        >
-          <option value="">Tous les types de centre</option>
-          {(types.data?.results ?? []).map((type) => (
-            <option key={type.id} value={type.id}>
-              {type.libelle}
-            </option>
-          ))}
-        </select>
-      </FilterBar>
+      <div className="no-print mb-5 flex flex-wrap items-center justify-between gap-3">
+        <FilterBar filtres={filtres} onChange={setFiltres}>
+          <select
+            value={typeCentre}
+            onChange={(e) => setTypeCentre(e.target.value)}
+            className="input-base w-auto"
+          >
+            <option value="">Tous les types de centre</option>
+            {(types.data?.results ?? []).map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.libelle}
+              </option>
+            ))}
+          </select>
+        </FilterBar>
+        <PrintControls
+          police={police}
+          taille={taille}
+          onPoliceChange={setPolice}
+          onTailleChange={setTaille}
+        />
+      </div>
 
       {loading && <LoadingMessage />}
       {error && <ErrorMessage message={error} />}
       {data && (
-        <>
+        <div
+          className="print-area"
+          style={{ fontFamily: POLICES[police], fontSize: TAILLES[taille] }}
+        >
+          <div className="mb-4 hidden border-b border-slate-300 pb-3 print:block">
+            <p className="text-base font-bold">Vue consolidée — Économat central</p>
+            <p className="text-sm text-slate-500">
+              Période : {filtres.date_debut ? formatDate(filtres.date_debut) : "origine"} au{" "}
+              {filtres.date_fin ? formatDate(filtres.date_fin) : "aujourd'hui"} — imprimé le{" "}
+              {formatDate(new Date().toISOString().slice(0, 10))}
+            </p>
+          </div>
+
           <StatsRow totaux={data.global} />
           <h2 className="mb-3 text-sm font-bold text-slate-900">
             Par type de centre
@@ -80,7 +110,7 @@ export default function DashboardPage() {
               </tbody>
             </TableCard>
           )}
-        </>
+        </div>
       )}
     </div>
   );

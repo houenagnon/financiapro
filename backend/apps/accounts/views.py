@@ -5,6 +5,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from apps.core.mixins import ProtectedDeleteMixin
+
 from .models import User
 from .permissions import CanManageUsers
 from .serializers import UserCreateSerializer, UserSerializer
@@ -37,9 +39,13 @@ class LogoutView(APIView):
         return Response(status=status.HTTP_205_RESET_CONTENT)
 
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(ProtectedDeleteMixin, viewsets.ModelViewSet):
     permission_classes = [CanManageUsers]
-    http_method_names = ["get", "post", "patch", "head", "options"]
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+    protected_delete_message = (
+        "Impossible de supprimer : ce compte a des opérations enregistrées ou "
+        "dirige un centre. Désactivez-le plutôt."
+    )
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -65,3 +71,12 @@ class UserViewSet(viewsets.ModelViewSet):
         target.is_active = False
         target.save(update_fields=["is_active"])
         return Response(UserSerializer(target).data)
+
+    def destroy(self, request, *args, **kwargs):
+        target = self.get_object()
+        if target == request.user:
+            return Response(
+                {"detail": "Impossible de supprimer son propre compte.", "code": "self_delete"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)

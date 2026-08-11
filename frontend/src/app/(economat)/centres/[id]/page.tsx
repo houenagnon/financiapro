@@ -1,8 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { use, useState } from "react";
 
 import { PageHeader } from "@/components/ui/PageHeader";
+import { DeleteButton } from "@/components/ui/DeleteButton";
 import {
   ActiveBadge,
   ErrorMessage,
@@ -18,6 +20,7 @@ export default function CentreDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
   const { data: centre, loading, error, reload } = useApi<Centre>(`/centres/${id}/`);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -48,7 +51,19 @@ export default function CentreDetailPage({
         >
           {centre.is_active ? "Désactiver" : "Réactiver"}
         </button>
+        <DeleteButton
+          path={`/centres/${id}/`}
+          confirmMessage={`Supprimer définitivement le centre « ${centre.nom} » et son économe ?`}
+          onDeleted={() => router.replace("/centres")}
+          className="btn-ghost border-rose-300 px-3 py-1.5 text-rose-700 hover:bg-rose-50"
+          label="Supprimer"
+        />
       </PageHeader>
+
+      <p className="mb-4 max-w-2xl text-xs text-slate-400">
+        La suppression n&apos;est possible que si le centre n&apos;a aucune
+        opération enregistrée — sinon, désactivez-le.
+      </p>
 
       {actionError && <ErrorMessage message={actionError} />}
 

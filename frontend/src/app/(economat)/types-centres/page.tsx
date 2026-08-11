@@ -6,12 +6,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import { PageHeader } from "@/components/ui/PageHeader";
+import { TableCard, Td, Th, Tr } from "@/components/ui/Table";
 import {
   ActiveBadge,
   EmptyMessage,
   ErrorMessage,
   LoadingMessage,
 } from "@/components/ui/StatusMessage";
+import { DeleteButton } from "@/components/ui/DeleteButton";
 import { useApi } from "@/hooks/useApi";
 import { api } from "@/lib/api-client";
 import type { Paginated } from "@/types/api";
@@ -109,36 +111,43 @@ export default function TypesCentresPage() {
         <EmptyMessage message="Aucun type de centre défini." />
       )}
       {data && data.results.length > 0 && (
-        <div className="max-w-2xl card overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50 text-left text-xs font-medium uppercase text-slate-500">
+        <div className="max-w-2xl">
+          <TableCard>
+            <thead>
               <tr>
-                <th className="px-4 py-3">Libellé</th>
-                <th className="px-4 py-3">Code</th>
-                <th className="px-4 py-3">Statut</th>
-                <th className="px-4 py-3" />
+                <Th>Libellé</Th>
+                <Th>Code</Th>
+                <Th>Statut</Th>
+                <Th />
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody>
               {data.results.map((type) => (
-                <tr key={type.id}>
-                  <td className="px-4 py-3 font-medium text-slate-900">{type.libelle}</td>
-                  <td className="px-4 py-3 text-slate-500">{type.code}</td>
-                  <td className="px-4 py-3">
+                <Tr key={type.id}>
+                  <Td className="font-semibold">{type.libelle}</Td>
+                  <Td className="text-slate-500">{type.code}</Td>
+                  <Td>
                     <ActiveBadge active={type.is_active} />
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => toggle(type)}
-                      className="text-sm text-indigo-600 hover:underline"
-                    >
-                      {type.is_active ? "Désactiver" : "Réactiver"}
-                    </button>
-                  </td>
-                </tr>
+                  </Td>
+                  <Td right>
+                    <span className="flex items-center justify-end gap-3">
+                      <button
+                        onClick={() => toggle(type)}
+                        className="text-sm text-amber-700 hover:underline"
+                      >
+                        {type.is_active ? "Désactiver" : "Réactiver"}
+                      </button>
+                      <DeleteButton
+                        path={`/types-centres/${type.id}/`}
+                        confirmMessage={`Supprimer définitivement le type « ${type.libelle} » ?`}
+                        onDeleted={reload}
+                      />
+                    </span>
+                  </Td>
+                </Tr>
               ))}
             </tbody>
-          </table>
+          </TableCard>
         </div>
       )}
     </div>
