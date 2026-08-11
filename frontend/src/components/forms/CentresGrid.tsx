@@ -8,20 +8,26 @@ import { z } from "zod";
 
 import { api, ApiClientError } from "@/lib/api-client";
 import { ErrorMessage } from "@/components/ui/StatusMessage";
+import { slugify } from "@/lib/slug";
 import type { TypeCentre } from "@/types/centre";
 
-/** Mot de passe initial commun à tous les économes créés en masse — fixe,
- * communiqué une fois par l'Économat central. Pas de flux de changement de
- * mot de passe à la première connexion dans le MVP : c'est un compromis
- * assumé pour la simplicité de la saisie en lot. */
+/** Identité par défaut de l'économe créé avec chaque centre — fixe, pour ne
+ * rien avoir à saisir. Seul l'email varie (dérivé du nom du centre, pour
+ * rester unique) ; prénom/nom et mot de passe sont toujours identiques.
+ * Compromis assumé pour la simplicité de la saisie en lot : l'Économat
+ * central communique ensuite ces identifiants à chaque économe. */
 export const MOT_DE_PASSE_PAR_DEFAUT = "Bienvenue2026!";
+export const PRENOM_PAR_DEFAUT = "Économe";
+const DOMAINE_EMAIL_PAR_DEFAUT = "financiapro.local";
+
+export function emailParDefaut(nomCentre: string): string {
+  const slug = slugify(nomCentre) || "centre";
+  return `econome.${slug}@${DOMAINE_EMAIL_PAR_DEFAUT}`;
+}
 
 const ligneSchema = z.object({
   nom: z.string().min(1, "Nom requis"),
   type_centre_id: z.coerce.number().min(1, "Type requis"),
-  first_name: z.string().min(1, "Prénom requis"),
-  last_name: z.string().min(1, "Nom requis"),
-  email: z.email("Email invalide"),
 });
 
 const grilleSchema = z.object({
@@ -33,13 +39,7 @@ type GrilleValues = z.output<typeof grilleSchema>;
 type LigneInput = GrilleInput["lignes"][number];
 
 function ligneVide(): LigneInput {
-  return {
-    nom: "",
-    type_centre_id: "" as unknown as number,
-    first_name: "",
-    last_name: "",
-    email: "",
-  };
+  return { nom: "", type_centre_id: "" as unknown as number };
 }
 
 const cellInput =
@@ -55,12 +55,14 @@ export function CentresGrid({ typesCentres }: { typesCentres: TypeCentre[] }) {
     register,
     control,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<GrilleInput, unknown, GrilleValues>({
     resolver: zodResolver(grilleSchema),
     defaultValues: { lignes: [ligneVide(), ligneVide()] },
   });
   const { fields, append, remove } = useFieldArray({ control, name: "lignes" });
+  const lignes = watch("lignes") ?? [];
 
   const onSubmit = async (values: GrilleValues) => {
     setServerError(null);
@@ -80,9 +82,9 @@ export function CentresGrid({ typesCentres }: { typesCentres: TypeCentre[] }) {
             type_centre_id: ligne.type_centre_id,
             description: "",
             econome: {
-              first_name: ligne.first_name,
-              last_name: ligne.last_name,
-              email: ligne.email,
+              first_name: PRENOM_PAR_DEFAUT,
+              last_name: ligne.nom,
+              email: emailParDefaut(ligne.nom),
               password: MOT_DE_PASSE_PAR_DEFAUT,
             },
           },
@@ -119,9 +121,11 @@ export function CentresGrid({ typesCentres }: { typesCentres: TypeCentre[] }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate>
       <p className="mb-3 max-w-2xl rounded-lg border border-indigo-200 bg-indigo-50 px-3.5 py-2.5 text-sm text-indigo-800">
-        Chaque économe créé reçoit le même mot de passe initial :{" "}
-        <b className="font-mono font-semibold">{MOT_DE_PASSE_PAR_DEFAUT}</b> — à
-        communiquer à chacun individuellement.
+        Chaque centre reçoit automatiquement un économe par défaut — vous
+        n&apos;avez rien à saisir pour lui : identifiant et mot de passe sont
+        générés (aperçu dans la dernière colonne), toujours{" "}
+        <b className="font-mono font-semibold">{MOT_DE_PASSE_PAR_DEFAUT}</b>{" "}
+        pour le mot de passe — à communiquer individuellement.
       </p>
 
       {creees > 0 && (
@@ -131,32 +135,31 @@ export function CentresGrid({ typesCentres }: { typesCentres: TypeCentre[] }) {
       )}
 
       <div className="overflow-x-auto rounded-xl border border-slate-300 bg-white shadow-sm">
-        <table className="w-full min-w-[820px] text-sm">
+        <table className="w-full min-w-[620px] text-sm">
           <thead>
             <tr>
               <th className="w-9 border border-slate-200 bg-slate-100 p-2" />
-              {["Nom du centre", "Type de centre", "Prénom économe", "Nom économe", "Email économe"].map(
-                (titre) => (
-                  <th
-                    key={titre}
-                    className="border border-slate-200 bg-slate-100 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[.07em] text-slate-500"
-                  >
-                    {titre}
-                  </th>
-                ),
-              )}
+              {["Nom du centre", "Type de centre", "Économe (généré)"].map((titre) => (
+                <th
+                  key={titre}
+                  className="border border-slate-200 bg-slate-100 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[.07em] text-slate-500"
+                >
+                  {titre}
+                </th>
+              ))}
               <th className="w-10 border border-slate-200 bg-slate-100 p-2" />
             </tr>
           </thead>
           <tbody>
             {fields.map((field, index) => {
               const ligneErreurs = errors.lignes?.[index];
+              const nom = lignes[index]?.nom ?? "";
               return (
                 <tr key={field.id} className="align-top">
                   <td className="border border-slate-200 bg-slate-100 px-2 py-2.5 text-center text-xs text-slate-400">
                     {index + 1}
                   </td>
-                  <td className="w-[190px] border border-slate-200">
+                  <td className="w-[220px] border border-slate-200">
                     <input
                       type="text"
                       placeholder="Paroisse Saint-Marc"
@@ -167,7 +170,7 @@ export function CentresGrid({ typesCentres }: { typesCentres: TypeCentre[] }) {
                       <p className="px-3 pb-1.5 text-xs text-rose-600">{ligneErreurs.nom.message}</p>
                     )}
                   </td>
-                  <td className="w-[160px] border border-slate-200">
+                  <td className="w-[180px] border border-slate-200">
                     <select {...register(`lignes.${index}.type_centre_id`)} className={cellInput}>
                       <option value="">—</option>
                       {typesCentres.map((type) => (
@@ -182,48 +185,16 @@ export function CentresGrid({ typesCentres }: { typesCentres: TypeCentre[] }) {
                       </p>
                     )}
                   </td>
-                  <td className="w-[150px] border border-slate-200">
-                    <input
-                      type="text"
-                      placeholder="Jean"
-                      {...register(`lignes.${index}.first_name`)}
-                      className={cellInput}
-                    />
-                    {ligneErreurs?.first_name && (
-                      <p className="px-3 pb-1.5 text-xs text-rose-600">
-                        {ligneErreurs.first_name.message}
-                      </p>
-                    )}
-                  </td>
-                  <td className="w-[150px] border border-slate-200">
-                    <input
-                      type="text"
-                      placeholder="Koudjo"
-                      {...register(`lignes.${index}.last_name`)}
-                      className={cellInput}
-                    />
-                    {ligneErreurs?.last_name && (
-                      <p className="px-3 pb-1.5 text-xs text-rose-600">
-                        {ligneErreurs.last_name.message}
-                      </p>
-                    )}
-                  </td>
-                  <td className="border border-slate-200">
-                    <input
-                      type="email"
-                      placeholder="jean.koudjo@exemple.org"
-                      {...register(`lignes.${index}.email`)}
-                      className={cellInput}
-                    />
-                    {ligneErreurs?.email && (
-                      <p className="px-3 pb-1.5 text-xs text-rose-600">
-                        {ligneErreurs.email.message}
-                      </p>
+                  <td className="border border-slate-200 bg-slate-50 px-3 py-2 text-slate-500">
+                    {nom ? (
+                      <span className="font-mono text-xs">{emailParDefaut(nom)}</span>
+                    ) : (
+                      <span className="text-xs italic text-slate-400">
+                        saisissez le nom du centre…
+                      </span>
                     )}
                     {erreursLignes[index] && (
-                      <p className="px-3 pb-1.5 text-xs text-rose-600">
-                        {erreursLignes[index]}
-                      </p>
+                      <p className="pt-1.5 text-xs text-rose-600">{erreursLignes[index]}</p>
                     )}
                   </td>
                   <td className="border border-slate-200 bg-slate-100 px-1 py-1.5 text-center">
@@ -243,7 +214,7 @@ export function CentresGrid({ typesCentres }: { typesCentres: TypeCentre[] }) {
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={7} className="border-t border-slate-200 bg-slate-50 px-3 py-1.5">
+              <td colSpan={5} className="border-t border-slate-200 bg-slate-50 px-3 py-1.5">
                 <button
                   type="button"
                   onClick={() => append(ligneVide())}
