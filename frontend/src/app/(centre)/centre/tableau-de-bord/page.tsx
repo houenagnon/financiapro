@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 
+import { ChartPanel } from "@/components/charts/ChartPanel";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { BarRow } from "@/components/ui/BarRow";
 import { StatsRow } from "@/components/ui/StatCard";
 import { ErrorMessage, LoadingMessage } from "@/components/ui/StatusMessage";
 import { useApi } from "@/hooks/useApi";
@@ -44,10 +44,12 @@ export default function TableauDeBordPage() {
   if (error) return <ErrorMessage message={error} />;
   if (!data) return null;
 
-  const maxCategorie = Math.max(
-    1,
-    ...data.par_categorie.map((c) => Number(c.total) || 0),
-  );
+  const repartitionRevenus = data.par_categorie
+    .filter((c) => c.type_operation === "REVENU")
+    .map((c) => ({ label: c.category, value: Number(c.total) || 0 }));
+  const repartitionDepenses = data.par_categorie
+    .filter((c) => c.type_operation === "DEPENSE")
+    .map((c) => ({ label: c.category, value: Number(c.total) || 0 }));
 
   return (
     <div>
@@ -115,26 +117,13 @@ export default function TableauDeBordPage() {
           </div>
         </section>
 
-        <section className="card">
-          <h2 className="px-4 pt-3.5 text-sm font-bold">Répartition par catégorie</h2>
-          {data.par_categorie.length === 0 ? (
-            <p className="px-4 py-6 text-sm text-slate-500">
-              Rien à afficher pour le moment.
-            </p>
-          ) : (
-            <div className="space-y-2.5 px-4 py-3.5">
-              {data.par_categorie.map((ligne) => (
-                <BarRow
-                  key={ligne.category_id}
-                  label={ligne.category}
-                  value={ligne.total}
-                  ratio={(Number(ligne.total) || 0) / maxCategorie}
-                  tone={ligne.type_operation === "REVENU" ? "revenu" : "depense"}
-                />
-              ))}
-            </div>
-          )}
-        </section>
+        <ChartPanel
+          titre="Évolution mensuelle"
+          serieMensuelle={data.serie_mensuelle}
+          repartitionRevenus={repartitionRevenus}
+          repartitionDepenses={repartitionDepenses}
+          repartitionTitre="Répartition par catégorie"
+        />
       </div>
     </div>
   );

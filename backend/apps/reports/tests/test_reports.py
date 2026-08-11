@@ -167,3 +167,17 @@ class TestRegistre:
 
     def test_economat_interdit(self, economat, client_for):
         assert client_for(economat).get("/api/centre/registre/").status_code == 403
+
+
+class TestSerieMensuelle:
+    def test_regroupement_par_mois(self, economat, donnees, client_for):
+        response = client_for(economat).get("/api/rapports/consolide/")
+        serie = {s["mois"]: s for s in response.data["serie_mensuelle"]}
+        assert serie["2026-07"]["revenus"] == "1500.00"
+        assert serie["2026-07"]["depenses"] == "300.00"
+
+    def test_serie_mensuelle_centre(self, donnees, client_for):
+        econome = donnees["a"].econome_principal
+        response = client_for(econome).get("/api/centre/dashboard/")
+        serie = {s["mois"]: s for s in response.data["serie_mensuelle"]}
+        assert serie["2026-07"]["solde"] == "700.00"

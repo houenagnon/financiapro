@@ -7,6 +7,7 @@ montants sont renvoyés en str pour préserver la précision décimale en JSON.
 from decimal import Decimal
 
 from django.db.models import Q, Sum
+from django.db.models.functions import TruncMonth
 
 from apps.finances.models import Nature
 
@@ -122,6 +123,35 @@ def comparaison_centres(queryset):
         entree["depenses"] = _fmt(entree["depenses"])
         resultat.append(entree)
     resultat.sort(key=lambda e: e.pop("solde_num"), reverse=True)
+    return resultat
+
+
+def serie_mensuelle(queryset):
+    """Revenus/dépenses/solde par mois, triés chronologiquement — matière
+    première des graphiques d'évolution (courbe/barres). Le mois est calculé
+    par la base (TruncMonth), pas en Python, pour rester correct quel que
+    soit le nombre de lignes."""
+    lignes = (
+        queryset.annotate(mois=TruncMonth("date_operation"))
+        .values("mois", "type_operation")
+        .annotate(total=Sum("montant"))
+        .order_by("mois")
+    )
+    mois_map = {}
+    for ligne in lignes:
+        cle = ligne["mois"].strftime("%Y-%m")
+        entree = mois_map.setdefault(
+            cle, {"mois": cle, "revenus": Decimal("0"), "depenses": Decimal("0")}
+        )
+        if ligne["type_operation"] == Nature.REVENU:
+            entree["revenus"] = ligne["total"]
+        else:
+            entree["depenses"] = ligne["total"]
+    resultat = sorted(mois_map.values(), key=lambda e: e["mois"])
+    for entree in resultat:
+        entree["solde"] = _fmt(entree["revenus"] - entree["depenses"])
+        entree["revenus"] = _fmt(entree["revenus"])
+        entree["depenses"] = _fmt(entree["depenses"])
     return resultat
 
 

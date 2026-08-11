@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { ChartPanel } from "@/components/charts/ChartPanel";
 import { FilterBar, type PeriodeFiltres } from "@/components/reports/FilterBar";
 import {
   POLICES,
@@ -77,6 +78,23 @@ export default function DashboardPage() {
           </div>
 
           <StatsRow totaux={data.global} />
+
+          <div className="mb-5">
+            <ChartPanel
+              titre="Évolution mensuelle (tous centres)"
+              serieMensuelle={data.serie_mensuelle}
+              repartitionRevenus={data.par_type_centre.map((l) => ({
+                label: l.type_centre,
+                value: Number(l.revenus) || 0,
+              }))}
+              repartitionDepenses={data.par_type_centre.map((l) => ({
+                label: l.type_centre,
+                value: Number(l.depenses) || 0,
+              }))}
+              repartitionTitre="Répartition par type de centre"
+            />
+          </div>
+
           <h2 className="mb-3 text-sm font-bold text-slate-900">
             Par type de centre
           </h2>

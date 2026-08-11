@@ -26,7 +26,9 @@ class ConsolideView(APIView):
         type_centre = request.query_params.get("type_centre")
         if type_centre:
             queryset = queryset.filter(centre__type_centre_id=type_centre)
-        return Response(services.rapport_consolide(queryset))
+        data = services.rapport_consolide(queryset)
+        data["serie_mensuelle"] = services.serie_mensuelle(queryset)
+        return Response(data)
 
 
 class ComparaisonCentresView(APIView):
@@ -80,6 +82,7 @@ class CentreDashboardView(APIView):
                 "statut_jour": declaration.statut if declaration else "NON_DECLARE",
                 "dernieres_operations": dernieres,
                 "par_categorie": services.totaux_par_categorie(periode),
+                "serie_mensuelle": services.serie_mensuelle(periode),
             }
         )
 

@@ -28,11 +28,21 @@ export interface CentreDashboard {
     type_operation: "REVENU" | "DEPENSE";
     total: string;
   }[];
+  serie_mensuelle: PointMensuel[];
+}
+
+/** Un point de série mensuelle — matière première des graphiques d'évolution. */
+export interface PointMensuel {
+  mois: string; // "2026-07"
+  revenus: string;
+  depenses: string;
+  solde: string;
 }
 
 export interface RapportConsolide {
   global: Totaux;
   par_type_centre: (Totaux & { type_centre_id: number; type_centre: string })[];
+  serie_mensuelle: PointMensuel[];
 }
 
 export type ComparaisonCentres = (Totaux & { centre_id: number; centre: string })[];
