@@ -40,6 +40,9 @@ class ComparaisonCentresView(APIView):
             request.query_params.get("date_debut"),
             request.query_params.get("date_fin"),
         )
+        type_centre = request.query_params.get("type_centre")
+        if type_centre:
+            queryset = queryset.filter(centre__type_centre_id=type_centre)
         return Response(services.comparaison_centres(queryset))
 
 

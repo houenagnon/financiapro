@@ -1,4 +1,5 @@
 from django.db import transaction as db_transaction
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -7,6 +8,7 @@ from apps.accounts.models import User
 from apps.accounts.permissions import IsEconomatCentral
 from apps.core.mixins import ProtectedDeleteMixin
 
+from .filters import CentreFilter
 from .models import Centre, TypeCentre
 from .serializers import (
     CentreCreateSerializer,
@@ -31,6 +33,8 @@ class CentreViewSet(ProtectedDeleteMixin, viewsets.ModelViewSet):
     queryset = Centre.objects.select_related("type_centre", "econome_principal")
     permission_classes = [IsEconomatCentral]
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = CentreFilter
     protected_delete_message = (
         "Impossible de supprimer : ce centre a des opérations enregistrées. "
         "Désactivez-le plutôt."

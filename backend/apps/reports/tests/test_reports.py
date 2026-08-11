@@ -104,6 +104,13 @@ class TestComparaisonCentres:
         assert [c["centre"] for c in response.data] == ["Paroisse A", "École B"]
         assert response.data[0]["solde"] == "700.00"
 
+    def test_filtre_par_type_centre(self, economat, donnees, client_for):
+        type_ecole = donnees["b"].type_centre_id
+        response = client_for(economat).get(
+            f"/api/rapports/comparaison-centres/?type_centre={type_ecole}"
+        )
+        assert [c["centre"] for c in response.data] == ["École B"]
+
 
 class TestCentreDashboard:
     def test_dashboard_du_centre(self, donnees, client_for):

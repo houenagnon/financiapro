@@ -194,3 +194,35 @@ class TestSuppression:
         response = client_for(economat).delete(f"/api/types-centres/{type_paroisse.pk}/")
         assert response.status_code == 400
         assert response.data["code"] == "protected"
+
+
+class TestFiltresCentres:
+    def test_filtre_par_type(self, economat, type_paroisse, client_for):
+        ecole = TypeCentre.objects.create(code="ecole", libelle="École")
+        client = client_for(economat)
+        creer_centre(client, type_paroisse, nom="Paroisse A", email="a@test.local")
+        creer_centre(client, ecole, nom="École B", email="b@test.local")
+        response = client.get(f"/api/centres/?type_centre={type_paroisse.pk}")
+        noms = {c["nom"] for c in response.data["results"]}
+        assert noms == {"Paroisse A"}
+
+    def test_filtre_par_statut(self, economat, type_paroisse, client_for):
+        client = client_for(economat)
+        creer_centre(client, type_paroisse, nom="Actif", email="actif@test.local")
+        creer_centre(client, type_paroisse, nom="Inactif", email="inactif@test.local")
+        centre_inactif = Centre.objects.get(nom="Inactif")
+        client.patch(f"/api/centres/{centre_inactif.pk}/", {"is_active": False})
+
+        response = client.get("/api/centres/?is_active=false")
+        assert {c["nom"] for c in response.data["results"]} == {"Inactif"}
+
+        response = client.get("/api/centres/?is_active=true")
+        assert {c["nom"] for c in response.data["results"]} == {"Actif"}
+
+    def test_recherche_par_nom(self, economat, type_paroisse, client_for):
+        client = client_for(economat)
+        creer_centre(client, type_paroisse, nom="Paroisse Saint-Marc", email="a@test.local")
+        creer_centre(client, type_paroisse, nom="École Sainte-Anne", email="b@test.local")
+        response = client.get("/api/centres/?q=marc")
+        noms = {c["nom"] for c in response.data["results"]}
+        assert noms == {"Paroisse Saint-Marc"}

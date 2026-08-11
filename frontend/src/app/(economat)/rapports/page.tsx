@@ -20,16 +20,21 @@ import {
 } from "@/components/ui/StatusMessage";
 import { useApi } from "@/hooks/useApi";
 import { formatDate, formatMontant } from "@/lib/format";
+import type { Paginated } from "@/types/api";
+import type { TypeCentre } from "@/types/centre";
 import type { ComparaisonCentres, RapportConsolide } from "@/types/report";
 
 export default function RapportsPage() {
   const [filtres, setFiltres] = useState<PeriodeFiltres>({ date_debut: "", date_fin: "" });
+  const [typeCentre, setTypeCentre] = useState("");
   const [police, setPolice] = useState<PoliceImpression>("sans");
   const [taille, setTaille] = useState<TailleImpression>("base");
 
+  const types = useApi<Paginated<TypeCentre>>("/types-centres/");
   const periodeParams = {
     date_debut: filtres.date_debut || undefined,
     date_fin: filtres.date_fin || undefined,
+    type_centre: typeCentre || undefined,
   };
   const { data, loading, error } = useApi<ComparaisonCentres>(
     "/rapports/comparaison-centres/",
@@ -50,7 +55,21 @@ export default function RapportsPage() {
       <PageHeader crumb="Économat central" title="Comparaison des centres" />
 
       <div className="no-print mb-5 flex flex-wrap items-center justify-between gap-3">
-        <FilterBar filtres={filtres} onChange={setFiltres} />
+        <div className="flex flex-wrap items-center gap-2.5">
+          <FilterBar filtres={filtres} onChange={setFiltres} />
+          <select
+            value={typeCentre}
+            onChange={(e) => setTypeCentre(e.target.value)}
+            className="input-base w-auto"
+          >
+            <option value="">Tous les types de centre</option>
+            {(types.data?.results ?? []).map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.libelle}
+              </option>
+            ))}
+          </select>
+        </div>
         <PrintControls
           police={police}
           taille={taille}
