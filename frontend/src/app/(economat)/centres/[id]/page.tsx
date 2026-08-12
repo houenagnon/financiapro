@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import { PageHeader } from "@/components/ui/PageHeader";
-import { DeleteButton } from "@/components/ui/DeleteButton";
+import { ConfirmDangerModal } from "@/components/ui/ConfirmDangerModal";
 import {
   ActiveBadge,
   ErrorMessage,
@@ -16,7 +16,7 @@ import {
 import { useApi } from "@/hooks/useApi";
 import { api, ApiClientError } from "@/lib/api-client";
 import type { Paginated } from "@/types/api";
-import type { Centre, TypeCentre } from "@/types/centre";
+import type { Centre, CentreStats, TypeCentre } from "@/types/centre";
 
 const editSchema = z.object({
   nom: z.string().min(1, "Le nom est requis."),
@@ -125,6 +125,15 @@ export default function CentreDetailPage({
   const [actionError, setActionError] = useState<string | null>(null);
   const [enEdition, setEnEdition] = useState(false);
 
+  // Suppression définitive : l'Économat central peut supprimer n'importe
+  // quel centre sans blocage, mais doit d'abord voir les conséquences
+  // (opérations et comptes qui seront supprimés avec).
+  const [suppressionOuverte, setSuppressionOuverte] = useState(false);
+  const [statsSuppression, setStatsSuppression] = useState<CentreStats | null>(null);
+  const [chargementStats, setChargementStats] = useState(false);
+  const [suppressionEnCours, setSuppressionEnCours] = useState(false);
+  const [suppressionErreur, setSuppressionErreur] = useState<string | null>(null);
+
   const toggleActive = async () => {
     if (!centre) return;
     setActionError(null);
@@ -136,6 +145,33 @@ export default function CentreDetailPage({
       reload();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Action impossible.");
+    }
+  };
+
+  const ouvrirConfirmationSuppression = async () => {
+    setSuppressionErreur(null);
+    setSuppressionOuverte(true);
+    setChargementStats(true);
+    try {
+      setStatsSuppression(await api<CentreStats>(`/centres/${id}/stats/`));
+    } catch {
+      setStatsSuppression(null);
+    } finally {
+      setChargementStats(false);
+    }
+  };
+
+  const confirmerSuppression = async () => {
+    setSuppressionEnCours(true);
+    setSuppressionErreur(null);
+    try {
+      await api(`/centres/${id}/`, { method: "DELETE" });
+      router.replace("/centres");
+    } catch (err) {
+      setSuppressionErreur(
+        err instanceof ApiClientError ? err.message : "Suppression impossible.",
+      );
+      setSuppressionEnCours(false);
     }
   };
 
@@ -171,21 +207,53 @@ export default function CentreDetailPage({
         <button onClick={toggleActive} className="btn-ghost px-3 py-1.5">
           {centre.is_active ? "Désactiver" : "Réactiver"}
         </button>
-        <DeleteButton
-          path={`/centres/${id}/`}
-          confirmMessage={`Supprimer définitivement le centre « ${centre.nom} » et son économe ?`}
-          onDeleted={() => router.replace("/centres")}
+        <button
+          onClick={ouvrirConfirmationSuppression}
           className="btn-ghost border-rose-300 px-3 py-1.5 text-rose-700 hover:bg-rose-50"
-          label="Supprimer"
-        />
+        >
+          Supprimer
+        </button>
       </PageHeader>
 
       <p className="mb-4 max-w-2xl text-xs text-slate-400">
-        La suppression n&apos;est possible que si le centre n&apos;a aucune
-        opération enregistrée — sinon, désactivez-le.
+        La suppression est définitive et supprime aussi les opérations et
+        les comptes du centre — les conséquences sont détaillées avant
+        confirmation.
       </p>
 
       {actionError && <ErrorMessage message={actionError} />}
+
+      <ConfirmDangerModal
+        open={suppressionOuverte}
+        title={`Supprimer « ${centre.nom} » ?`}
+        confirmLabel="Supprimer définitivement"
+        confirming={suppressionEnCours}
+        onCancel={() => setSuppressionOuverte(false)}
+        onConfirm={confirmerSuppression}
+      >
+        {chargementStats ? (
+          <p>Vérification des données liées…</p>
+        ) : (
+          <>
+            <p>Cette action est irréversible. Seront supprimés avec le centre :</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              <li>
+                <b>{statsSuppression?.nb_transactions ?? "?"}</b> opération(s)
+                financière(s) enregistrée(s)
+              </li>
+              <li>
+                <b>{statsSuppression?.nb_membres ?? "?"}</b> compte(s) associé(s)
+                (économe principal et assistants)
+              </li>
+            </ul>
+          </>
+        )}
+        {suppressionErreur && (
+          <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700">
+            {suppressionErreur}
+          </p>
+        )}
+      </ConfirmDangerModal>
 
       <div className="grid max-w-2xl gap-4 sm:grid-cols-2">
         <div className="card p-4">

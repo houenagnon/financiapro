@@ -17,3 +17,9 @@ export interface Centre {
   is_active: boolean;
   date_creation: string;
 }
+
+export interface CentreStats {
+  centre_id: number;
+  nb_membres: number;
+  nb_transactions: number;
+}

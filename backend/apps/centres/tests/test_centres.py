@@ -169,23 +169,64 @@ class TestSuppression:
         assert not Centre.objects.filter(pk=centre.pk).exists()
         assert not User.objects.filter(email="eco@test.local").exists()
 
-    def test_impossible_de_supprimer_un_centre_avec_transactions(
+    def test_supprime_un_centre_avec_transactions_et_membres(
         self, economat, type_paroisse, client_for
     ):
         from apps.finances.models import Category, Nature, Transaction
 
-        creer_centre(client_for(economat), type_paroisse)
+        client = client_for(economat)
+        creer_centre(client, type_paroisse)
         centre = Centre.objects.get(nom="Paroisse Saint-Marc")
+        econome = centre.econome_principal
         categorie = Category.objects.create(nom="Dons", nature=Nature.REVENU)
         Transaction.objects.create(
             centre=centre, type_operation="REVENU", montant="10.00",
             date_operation="2026-07-15", category=categorie,
-            saisi_par=centre.econome_principal,
+            saisi_par=econome,
         )
-        response = client_for(economat).delete(f"/api/centres/{centre.pk}/")
-        assert response.status_code == 400
-        assert response.data["code"] == "protected"
-        assert Centre.objects.filter(pk=centre.pk).exists()
+        client_for(econome).post(
+            "/api/users/",
+            {
+                "email": "assistant@test.local",
+                "password": "Passw0rd!Test",
+                "first_name": "Aline",
+                "last_name": "Assistante",
+                "role": "ASSISTANT",
+            },
+        )
+        assistant_id = User.objects.get(email="assistant@test.local").pk
+
+        response = client.delete(f"/api/centres/{centre.pk}/")
+
+        assert response.status_code == 204
+        assert not Centre.objects.filter(pk=centre.pk).exists()
+        assert not Transaction.objects.filter(centre_id=centre.pk).exists()
+        assert not User.objects.filter(pk=econome.pk).exists()
+        assert not User.objects.filter(pk=assistant_id).exists()
+
+    def test_suppression_d_un_centre_n_affecte_pas_les_autres(
+        self, economat, type_paroisse, client_for
+    ):
+        from apps.finances.models import Category, Nature, Transaction
+
+        client = client_for(economat)
+        creer_centre(client, type_paroisse, nom="Centre A", email="a@test.local")
+        creer_centre(client, type_paroisse, nom="Centre B", email="b@test.local")
+        centre_a = Centre.objects.get(nom="Centre A")
+        centre_b = Centre.objects.get(nom="Centre B")
+        categorie = Category.objects.create(nom="Dons", nature=Nature.REVENU)
+        Transaction.objects.create(
+            centre=centre_b, type_operation="REVENU", montant="10.00",
+            date_operation="2026-07-15", category=categorie,
+            saisi_par=centre_b.econome_principal,
+        )
+
+        response = client.delete(f"/api/centres/{centre_a.pk}/")
+
+        assert response.status_code == 204
+        assert Centre.objects.filter(pk=centre_b.pk).exists()
+        assert Transaction.objects.filter(centre_id=centre_b.pk).count() == 1
+        assert User.objects.filter(email="b@test.local").exists()
 
     def test_impossible_de_supprimer_un_type_centre_utilise(
         self, economat, type_paroisse, client_for
@@ -226,3 +267,26 @@ class TestFiltresCentres:
         response = client.get("/api/centres/?q=marc")
         noms = {c["nom"] for c in response.data["results"]}
         assert noms == {"Paroisse Saint-Marc"}
+
+
+class TestStatsCentre:
+    def test_stats_inclut_nb_transactions_et_nb_membres(
+        self, economat, type_paroisse, client_for
+    ):
+        from apps.finances.models import Category, Nature, Transaction
+
+        client = client_for(economat)
+        creer_centre(client, type_paroisse)
+        centre = Centre.objects.get(nom="Paroisse Saint-Marc")
+        categorie = Category.objects.create(nom="Dons", nature=Nature.REVENU)
+        Transaction.objects.create(
+            centre=centre, type_operation="REVENU", montant="10.00",
+            date_operation="2026-07-15", category=categorie,
+            saisi_par=centre.econome_principal,
+        )
+
+        response = client.get(f"/api/centres/{centre.pk}/stats/")
+
+        assert response.status_code == 200
+        assert response.data["nb_transactions"] == 1
+        assert response.data["nb_membres"] == 1
