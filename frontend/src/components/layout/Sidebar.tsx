@@ -20,8 +20,10 @@ const NAV_ECONOMAT: NavItem[] = [
   { href: "/utilisateurs", label: "Utilisateurs", icon: "users" },
   { href: "/rapports", label: "Rapports", icon: "chart" },
   // Après "Rapports" pour ne pas décaler la barre mobile (items.slice(0, 5)).
+  // La trésorerie centrale est un onglet de /placements (PlacementsSubNav),
+  // pas une entrée de sidebar séparée — pour que les deux se lisent comme
+  // un seul parcours (virer des fonds puis investir).
   { href: "/placements", label: "Placements", icon: "wallet" },
-  { href: "/tresorerie", label: "Trésorerie centrale", icon: "vault" },
 ];
 
 const NAV_CENTRE: NavItem[] = [

@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
+import { PlacementsSubNav } from "@/components/placements/PlacementsSubNav";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { TableCard, Td, Th, Tr } from "@/components/ui/Table";
@@ -54,7 +56,15 @@ function MouvementBadge({ type }: { type: TypeMouvement }) {
   );
 }
 
-function VirementForm({ centres, onDone }: { centres: Centre[]; onDone: () => void }) {
+function VirementForm({
+  centres,
+  onDone,
+  onCancel,
+}: {
+  centres: Centre[];
+  onDone: () => void;
+  onCancel: () => void;
+}) {
   const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
@@ -159,9 +169,12 @@ function VirementForm({ centres, onDone }: { centres: Centre[]; onDone: () => vo
         </div>
       )}
 
-      <div className="sm:col-span-2">
+      <div className="flex gap-3 sm:col-span-2">
         <button type="submit" disabled={isSubmitting} className="btn-primary">
           {isSubmitting ? "Virement…" : "Effectuer le virement"}
+        </button>
+        <button type="button" onClick={onCancel} className="btn-ghost">
+          Annuler
         </button>
       </div>
     </form>
@@ -172,6 +185,7 @@ export default function TresoreriePage() {
   const solde = useApi<SoldeCaisse>("/tresorerie/solde/");
   const mouvements = useApi<Paginated<MouvementTresorerie>>("/tresorerie/mouvements/");
   const centres = useApi<Paginated<Centre>>("/centres/", { is_active: "true" });
+  const [formulaireOuvert, setFormulaireOuvert] = useState(false);
 
   const rafraichir = () => {
     solde.reload();
@@ -180,14 +194,38 @@ export default function TresoreriePage() {
 
   return (
     <div>
-      <PageHeader crumb="Économat central" title="Trésorerie centrale" />
+      <PageHeader crumb="Placements" title="Trésorerie centrale">
+        <button
+          onClick={() => setFormulaireOuvert((v) => !v)}
+          className="btn-primary"
+        >
+          {formulaireOuvert ? "Fermer" : "+ Nouveau virement"}
+        </button>
+      </PageHeader>
+      <PlacementsSubNav />
+
+      <p className="mb-5 max-w-2xl text-sm text-slate-500">
+        Cette caisse finance les achats de placements de l&apos;Économat
+        central — alimentez-la depuis un centre avant d&apos;
+        <Link href="/placements" className="text-indigo-600 hover:underline">
+          investir dans un portefeuille
+        </Link>
+        .
+      </p>
 
       <div className="mb-5 max-w-xs">
         <StatCard label="Solde disponible" value={solde.data?.solde ?? "0"} />
       </div>
 
-      {centres.data && (
-        <VirementForm centres={centres.data.results.filter((c) => c.is_active)} onDone={rafraichir} />
+      {formulaireOuvert && centres.data && (
+        <VirementForm
+          centres={centres.data.results.filter((c) => c.is_active)}
+          onDone={() => {
+            setFormulaireOuvert(false);
+            rafraichir();
+          }}
+          onCancel={() => setFormulaireOuvert(false)}
+        />
       )}
 
       <h2 className="mb-3 text-sm font-bold text-slate-900">Journal des mouvements</h2>

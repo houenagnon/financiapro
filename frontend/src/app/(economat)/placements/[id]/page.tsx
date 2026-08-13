@@ -1,6 +1,7 @@
 "use client";
 
-import { use, useState } from "react";
+import Link from "next/link";
+import { Fragment, use, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -26,7 +27,11 @@ import type {
   Portefeuille,
   PerformancePortefeuille,
   TypePlacement,
+  ValorisationPlacement,
 } from "@/types/placement";
+import type { SoldeCaisse } from "@/types/tresorerie";
+
+const NB_COLONNES = 9; // pour le colSpan de la ligne d'historique dépliée
 
 const MONTANT_REGEX = /^\d+([.,]\d{1,2})?$/;
 const champMontant = z.string().refine((v) => MONTANT_REGEX.test(v), "Montant invalide.");
@@ -47,11 +52,13 @@ type AchatValues = z.output<typeof achatSchema>;
 function NouveauPlacementForm({
   portefeuilleId,
   types,
+  soldeCaisse,
   onCreated,
   onCancel,
 }: {
   portefeuilleId: number;
   types: TypePlacement[];
+  soldeCaisse: string;
   onCreated: () => void;
   onCancel: () => void;
 }) {
@@ -59,6 +66,7 @@ function NouveauPlacementForm({
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<AchatInput, unknown, AchatValues>({
     resolver: zodResolver(achatSchema),
@@ -92,12 +100,31 @@ function NouveauPlacementForm({
     }
   };
 
+  const montantSaisi = watch("montant_investi");
+  const insuffisant =
+    Boolean(montantSaisi) &&
+    MONTANT_REGEX.test(montantSaisi) &&
+    Number(montantSaisi.replace(",", ".")) > Number(soldeCaisse);
+
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
       className="card mb-6 grid max-w-3xl gap-3 p-4 sm:grid-cols-2"
       noValidate
     >
+      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 sm:col-span-2">
+        Solde disponible en trésorerie centrale :{" "}
+        <b className="tabular-nums">{formatMontant(soldeCaisse)}</b>
+        {insuffisant && (
+          <p className="mt-1 text-rose-600">
+            Ce montant dépasse le solde disponible.{" "}
+            <Link href="/placements/tresorerie" className="font-semibold hover:underline">
+              Alimenter la trésorerie →
+            </Link>
+          </p>
+        )}
+      </div>
+
       <div className="sm:col-span-2">
         <label className="block text-sm font-medium text-slate-700">
           Nom du placement
@@ -398,6 +425,50 @@ function GainCell({ gainPerte, performancePct }: { gainPerte: string; performanc
   );
 }
 
+/** Historique des valorisations d'un placement, chargé uniquement à
+ * l'ouverture (la ligne est démontée à la fermeture, donc pas de requête
+ * tant qu'on ne l'a pas demandé). */
+function HistoriquePlacement({ placementId }: { placementId: number }) {
+  const { data, loading, error } = useApi<ValorisationPlacement[]>(
+    `/placements/${placementId}/historique/`,
+  );
+
+  if (loading) return <p className="py-1 text-xs text-slate-400">Chargement…</p>;
+  if (error) return <ErrorMessage message={error} />;
+  if (!data || data.length === 0) {
+    return (
+      <p className="py-1 text-xs text-slate-400">
+        Aucun marquage enregistré pour l&apos;instant.
+      </p>
+    );
+  }
+
+  return (
+    <table className="w-full text-xs">
+      <thead>
+        <tr className="text-left text-slate-400">
+          <th className="py-1 pr-4 font-semibold uppercase tracking-wide">Date</th>
+          <th className="py-1 pr-4 font-semibold uppercase tracking-wide">Valeur</th>
+          <th className="py-1 font-semibold uppercase tracking-wide">Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {data.map((valorisation) => (
+          <tr key={valorisation.id} className="border-t border-slate-200">
+            <td className="py-1.5 pr-4 text-slate-500">
+              {formatDate(valorisation.date_valorisation)}
+            </td>
+            <td className="py-1.5 pr-4 font-medium text-slate-800">
+              {formatMontant(valorisation.valeur)}
+            </td>
+            <td className="py-1.5 text-slate-500">{valorisation.notes || "—"}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 export default function PortefeuilleDetailPage({
   params,
 }: {
@@ -414,12 +485,23 @@ export default function PortefeuilleDetailPage({
     portefeuille: portefeuilleId,
   });
   const typesRequest = useApi<Paginated<TypePlacement>>("/types-placements/");
+  const soldeCaisse = useApi<SoldeCaisse>("/tresorerie/solde/");
 
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
   const [actionEnCours, setActionEnCours] = useState<
     { type: "valoriser" | "cloturer"; placement: Placement } | null
   >(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [historiquesOuverts, setHistoriquesOuverts] = useState<Set<number>>(new Set());
+
+  const toggleHistorique = (placementId: number) => {
+    setHistoriquesOuverts((precedent) => {
+      const suivant = new Set(precedent);
+      if (suivant.has(placementId)) suivant.delete(placementId);
+      else suivant.add(placementId);
+      return suivant;
+    });
+  };
 
   const rafraichirTout = () => {
     performance.reload();
@@ -471,7 +553,9 @@ export default function PortefeuilleDetailPage({
         <NouveauPlacementForm
           portefeuilleId={portefeuilleId}
           types={typesActifs}
+          soldeCaisse={soldeCaisse.data?.solde ?? "0"}
           onCreated={() => {
+            soldeCaisse.reload();
             setFormulaireOuvert(false);
             rafraichirTout();
           }}
@@ -498,22 +582,27 @@ export default function PortefeuilleDetailPage({
           </div>
 
           {performance.data.nb_placements > 0 && (
-            <div className="mb-5 grid gap-4 lg:grid-cols-2">
-              <div className="card p-4">
-                <h2 className="mb-3 text-sm font-bold text-slate-900">Évolution</h2>
-                <PlacementValueChart data={performance.data.serie_mensuelle} />
-              </div>
-              <div className="grid gap-4">
-                <div className="card p-4">
-                  <h2 className="mb-3 text-sm font-bold text-slate-900">Par niveau de risque</h2>
-                  <CategoryBarChart data={repartitionRisque} />
+            <details className="card mb-5 p-4">
+              <summary className="cursor-pointer text-sm font-bold text-slate-900">
+                Analyse détaillée (évolution, répartitions)
+              </summary>
+              <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                <div>
+                  <h3 className="mb-3 text-sm font-bold text-slate-900">Évolution</h3>
+                  <PlacementValueChart data={performance.data.serie_mensuelle} />
                 </div>
-                <div className="card p-4">
-                  <h2 className="mb-3 text-sm font-bold text-slate-900">Par type</h2>
-                  <CategoryBarChart data={repartitionType} />
+                <div className="grid gap-4">
+                  <div>
+                    <h3 className="mb-3 text-sm font-bold text-slate-900">Par niveau de risque</h3>
+                    <CategoryBarChart data={repartitionRisque} />
+                  </div>
+                  <div>
+                    <h3 className="mb-3 text-sm font-bold text-slate-900">Par type</h3>
+                    <CategoryBarChart data={repartitionType} />
+                  </div>
                 </div>
               </div>
-            </div>
+            </details>
           )}
         </>
       )}
@@ -540,49 +629,69 @@ export default function PortefeuilleDetailPage({
             </tr>
           </thead>
           <tbody>
-            {placements.data.results.map((placement) => (
-              <Tr key={placement.id}>
-                <Td className="font-semibold">{placement.nom}</Td>
-                <Td className="text-slate-600">{placement.type_placement.libelle}</Td>
-                <Td>
-                  <RisqueBadge niveau={placement.niveau_risque} />
-                </Td>
-                <Td right>{formatMontant(placement.montant_investi)}</Td>
-                <Td right>{formatMontant(placement.valeur_actuelle)}</Td>
-                <Td right>
-                  <GainCell
-                    gainPerte={placement.gain_perte}
-                    performancePct={placement.performance_pct}
-                  />
-                </Td>
-                <Td>
-                  <StatutPlacementBadge statut={placement.statut} />
-                </Td>
-                <Td className="text-slate-500">
-                  {placement.derniere_valorisation
-                    ? formatDate(placement.derniere_valorisation.date_valorisation)
-                    : "—"}
-                </Td>
-                <Td right>
-                  {placement.statut === "EN_COURS" && (
-                    <span className="flex items-center justify-end gap-3">
+            {placements.data.results.map((placement) => {
+              const ouvert = historiquesOuverts.has(placement.id);
+              return (
+                <Fragment key={placement.id}>
+                  <Tr>
+                    <Td>
+                      <span className="font-semibold text-slate-900">{placement.nom}</span>
                       <button
-                        onClick={() => setActionEnCours({ type: "valoriser", placement })}
-                        className="text-sm text-indigo-600 hover:underline"
+                        onClick={() => toggleHistorique(placement.id)}
+                        className="mt-0.5 block text-xs text-slate-400 hover:text-indigo-600 hover:underline"
                       >
-                        Marquer
+                        {ouvert ? "▾ masquer l'historique" : "▸ historique"}
                       </button>
-                      <button
-                        onClick={() => setActionEnCours({ type: "cloturer", placement })}
-                        className="text-sm text-amber-700 hover:underline"
-                      >
-                        Clôturer
-                      </button>
-                    </span>
+                    </Td>
+                    <Td className="text-slate-600">{placement.type_placement.libelle}</Td>
+                    <Td>
+                      <RisqueBadge niveau={placement.niveau_risque} />
+                    </Td>
+                    <Td right>{formatMontant(placement.montant_investi)}</Td>
+                    <Td right>{formatMontant(placement.valeur_actuelle)}</Td>
+                    <Td right>
+                      <GainCell
+                        gainPerte={placement.gain_perte}
+                        performancePct={placement.performance_pct}
+                      />
+                    </Td>
+                    <Td>
+                      <StatutPlacementBadge statut={placement.statut} />
+                    </Td>
+                    <Td className="text-slate-500">
+                      {placement.derniere_valorisation
+                        ? formatDate(placement.derniere_valorisation.date_valorisation)
+                        : "—"}
+                    </Td>
+                    <Td right>
+                      {placement.statut === "EN_COURS" && (
+                        <span className="flex items-center justify-end gap-3">
+                          <button
+                            onClick={() => setActionEnCours({ type: "valoriser", placement })}
+                            className="text-sm text-indigo-600 hover:underline"
+                          >
+                            Marquer
+                          </button>
+                          <button
+                            onClick={() => setActionEnCours({ type: "cloturer", placement })}
+                            className="text-sm text-amber-700 hover:underline"
+                          >
+                            Clôturer
+                          </button>
+                        </span>
+                      )}
+                    </Td>
+                  </Tr>
+                  {ouvert && (
+                    <tr>
+                      <td colSpan={NB_COLONNES} className="border-b border-slate-100 bg-slate-50 px-4 py-3">
+                        <HistoriquePlacement placementId={placement.id} />
+                      </td>
+                    </tr>
                   )}
-                </Td>
-              </Tr>
-            ))}
+                </Fragment>
+              );
+            })}
           </tbody>
         </TableCard>
       )}

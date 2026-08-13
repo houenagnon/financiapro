@@ -8,6 +8,7 @@ import { z } from "zod";
 
 import { CategoryBarChart } from "@/components/charts/CategoryBarChart";
 import { PlacementValueChart } from "@/components/charts/PlacementValueChart";
+import { PlacementsSubNav } from "@/components/placements/PlacementsSubNav";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { TableCard, Td, Th, Tr } from "@/components/ui/Table";
@@ -29,12 +30,17 @@ const portefeuilleSchema = z.object({
 });
 type PortefeuilleFormValues = z.infer<typeof portefeuilleSchema>;
 
-function NouveauPortefeuilleForm({ onCreated }: { onCreated: () => void }) {
+function NouveauPortefeuilleForm({
+  onCreated,
+  onCancel,
+}: {
+  onCreated: () => void;
+  onCancel: () => void;
+}) {
   const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
-    reset,
     formState: { errors, isSubmitting },
   } = useForm<PortefeuilleFormValues>({
     resolver: zodResolver(portefeuilleSchema),
@@ -45,7 +51,6 @@ function NouveauPortefeuilleForm({ onCreated }: { onCreated: () => void }) {
     setServerError(null);
     try {
       await api("/portefeuilles/", { method: "POST", body: values });
-      reset();
       onCreated();
     } catch (err) {
       setServerError(err instanceof Error ? err.message : "Création impossible.");
@@ -76,9 +81,14 @@ function NouveauPortefeuilleForm({ onCreated }: { onCreated: () => void }) {
           <input type="text" {...register("description")} className="input-base mt-1" />
         </label>
       </div>
-      <button type="submit" disabled={isSubmitting} className="btn-primary">
-        Créer
-      </button>
+      <div className="flex gap-3">
+        <button type="submit" disabled={isSubmitting} className="btn-primary">
+          Créer
+        </button>
+        <button type="button" onClick={onCancel} className="btn-ghost">
+          Annuler
+        </button>
+      </div>
       {serverError && (
         <div className="w-full">
           <ErrorMessage message={serverError} />
@@ -88,9 +98,30 @@ function NouveauPortefeuilleForm({ onCreated }: { onCreated: () => void }) {
   );
 }
 
+function OnboardingBanner() {
+  return (
+    <div className="card mb-6 max-w-2xl border-indigo-200 bg-indigo-50 p-5">
+      <h2 className="mb-2 text-sm font-bold text-indigo-900">
+        Comment démarrer avec les placements ?
+      </h2>
+      <ol className="list-decimal space-y-1.5 pl-5 text-sm text-indigo-800">
+        <li>
+          <Link href="/placements/tresorerie" className="font-semibold hover:underline">
+            Virez des fonds
+          </Link>{" "}
+          depuis un centre vers la trésorerie centrale.
+        </li>
+        <li>Créez un portefeuille avec le bouton ci-dessus.</li>
+        <li>Achetez-y un premier placement, puis suivez sa valeur au fil du temps.</li>
+      </ol>
+    </div>
+  );
+}
+
 export default function PlacementsPage() {
   const dashboard = useApi<DashboardPlacements>("/rapports/placements/");
   const portefeuilles = useApi<Paginated<Portefeuille>>("/portefeuilles/");
+  const [formulaireOuvert, setFormulaireOuvert] = useState(false);
 
   const repartitionRisque = (dashboard.data?.par_risque ?? []).map((r) => ({
     label: r.label,
@@ -101,65 +132,57 @@ export default function PlacementsPage() {
     value: Number(r.valeur) || 0,
   }));
 
+  const rienEncore =
+    dashboard.data !== null &&
+    portefeuilles.data !== null &&
+    Number(dashboard.data.solde_caisse) === 0 &&
+    dashboard.data.nb_placements === 0 &&
+    portefeuilles.data.results.length === 0;
+
   return (
     <div>
       <PageHeader crumb="Économat central" title="Placements">
-        <Link href="/placements/types" className="btn-ghost px-3 py-1.5">
-          Types de placement
-        </Link>
+        <button onClick={() => setFormulaireOuvert((v) => !v)} className="btn-primary">
+          {formulaireOuvert ? "Fermer" : "+ Nouveau portefeuille"}
+        </button>
       </PageHeader>
+      <PlacementsSubNav />
 
-      <NouveauPortefeuilleForm onCreated={() => portefeuilles.reload()} />
+      {rienEncore && <OnboardingBanner />}
+
+      {formulaireOuvert && (
+        <NouveauPortefeuilleForm
+          onCreated={() => {
+            setFormulaireOuvert(false);
+            portefeuilles.reload();
+            dashboard.reload();
+          }}
+          onCancel={() => setFormulaireOuvert(false)}
+        />
+      )}
 
       {dashboard.loading && <LoadingMessage />}
       {dashboard.error && <ErrorMessage message={dashboard.error} />}
 
       {dashboard.data && (
-        <>
-          <div className="mb-5 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Solde trésorerie centrale" value={dashboard.data.solde_caisse} />
-            <StatCard label="Total investi" value={dashboard.data.total_investi} />
-            <StatCard label="Valeur actuelle" value={dashboard.data.valeur_actuelle} />
-            <StatCard
-              label="Gain / perte"
-              value={dashboard.data.gain_perte}
-              tone={Number(dashboard.data.gain_perte) >= 0 ? "revenu" : "depense"}
-              sub={`${dashboard.data.performance_pct} %`}
-            />
-          </div>
-
-          {dashboard.data.nb_placements > 0 && (
-            <div className="mb-5 grid gap-4 lg:grid-cols-2">
-              <div className="card p-4">
-                <h2 className="mb-3 text-sm font-bold text-slate-900">
-                  Évolution du portefeuille global
-                </h2>
-                <PlacementValueChart data={dashboard.data.serie_mensuelle} />
-              </div>
-              <div className="grid gap-4">
-                <div className="card p-4">
-                  <h2 className="mb-3 text-sm font-bold text-slate-900">
-                    Répartition par niveau de risque
-                  </h2>
-                  <CategoryBarChart data={repartitionRisque} />
-                </div>
-                <div className="card p-4">
-                  <h2 className="mb-3 text-sm font-bold text-slate-900">
-                    Répartition par type de placement
-                  </h2>
-                  <CategoryBarChart data={repartitionType} />
-                </div>
-              </div>
-            </div>
-          )}
-        </>
+        <div className="mb-5 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label="Solde trésorerie centrale" value={dashboard.data.solde_caisse} />
+          <StatCard label="Total investi" value={dashboard.data.total_investi} />
+          <StatCard label="Valeur actuelle" value={dashboard.data.valeur_actuelle} />
+          <StatCard
+            label="Gain / perte"
+            value={dashboard.data.gain_perte}
+            tone={Number(dashboard.data.gain_perte) >= 0 ? "revenu" : "depense"}
+            sub={`${dashboard.data.performance_pct} %`}
+          />
+        </div>
       )}
 
       <h2 className="mb-3 text-sm font-bold text-slate-900">Portefeuilles</h2>
       {portefeuilles.loading && <LoadingMessage />}
       {portefeuilles.error && <ErrorMessage message={portefeuilles.error} />}
-      {portefeuilles.data && portefeuilles.data.results.length === 0 && (
-        <EmptyMessage message="Aucun portefeuille pour le moment. Créez-en un pour commencer à investir." />
+      {portefeuilles.data && portefeuilles.data.results.length === 0 && !rienEncore && (
+        <EmptyMessage message="Aucun portefeuille pour le moment. Créez-en un avec le bouton « Nouveau portefeuille » ci-dessus." />
       )}
       {portefeuilles.data && portefeuilles.data.results.length > 0 && (
         <TableCard>
@@ -198,6 +221,36 @@ export default function PlacementsPage() {
             })}
           </tbody>
         </TableCard>
+      )}
+
+      {dashboard.data && dashboard.data.nb_placements > 0 && (
+        <details className="card mt-6 p-4">
+          <summary className="cursor-pointer text-sm font-bold text-slate-900">
+            Analyse détaillée (évolution, répartitions)
+          </summary>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div>
+              <h3 className="mb-3 text-sm font-bold text-slate-900">
+                Évolution du portefeuille global
+              </h3>
+              <PlacementValueChart data={dashboard.data.serie_mensuelle} />
+            </div>
+            <div className="grid gap-4">
+              <div>
+                <h3 className="mb-3 text-sm font-bold text-slate-900">
+                  Répartition par niveau de risque
+                </h3>
+                <CategoryBarChart data={repartitionRisque} />
+              </div>
+              <div>
+                <h3 className="mb-3 text-sm font-bold text-slate-900">
+                  Répartition par type de placement
+                </h3>
+                <CategoryBarChart data={repartitionType} />
+              </div>
+            </div>
+          </div>
+        </details>
       )}
     </div>
   );

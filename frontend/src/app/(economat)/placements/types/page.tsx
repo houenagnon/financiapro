@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
+import { PlacementsSubNav } from "@/components/placements/PlacementsSubNav";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { TableCard, Td, Th, Tr } from "@/components/ui/Table";
 import {
@@ -63,6 +64,7 @@ export default function TypesPlacementsPage() {
   return (
     <div>
       <PageHeader crumb="Placements" title="Types de placement" />
+      <PlacementsSubNav />
 
       <form
         onSubmit={handleSubmit(onSubmit)}
