@@ -8,6 +8,7 @@ from apps.accounts.permissions import IsEconomatCentral
 from apps.core.permissions import IsCentreMember
 from apps.declarations.models import DeclarationJournaliere
 from apps.finances.models import Nature, Transaction
+from apps.placements import services as placements_services
 
 from . import services
 
@@ -88,6 +89,17 @@ class CentreDashboardView(APIView):
                 "serie_mensuelle": services.serie_mensuelle(periode),
             }
         )
+
+
+class RapportPlacementsView(APIView):
+    """Rapport consolidé des placements : solde de la trésorerie centrale,
+    performance globale, répartitions par type/risque, série mensuelle et
+    détail par portefeuille."""
+
+    permission_classes = [IsEconomatCentral]
+
+    def get(self, request):
+        return Response(placements_services.dashboard_placements())
 
 
 class RegistreView(APIView):

@@ -19,6 +19,9 @@ const NAV_ECONOMAT: NavItem[] = [
   { href: "/categories", label: "Catégories", icon: "list" },
   { href: "/utilisateurs", label: "Utilisateurs", icon: "users" },
   { href: "/rapports", label: "Rapports", icon: "chart" },
+  // Après "Rapports" pour ne pas décaler la barre mobile (items.slice(0, 5)).
+  { href: "/placements", label: "Placements", icon: "wallet" },
+  { href: "/tresorerie", label: "Trésorerie centrale", icon: "vault" },
 ];
 
 const NAV_CENTRE: NavItem[] = [

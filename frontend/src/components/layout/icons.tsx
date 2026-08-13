@@ -15,6 +15,8 @@ export type IconName =
   | "chart"
   | "building"
   | "tags"
+  | "wallet"
+  | "vault"
   | "logout";
 
 const PATHS: Record<IconName, React.ReactNode> = {
@@ -53,6 +55,21 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <path d="M20.59 13.41 12 22l-8-8 8.59-8.59A2 2 0 0 1 14 5h5a2 2 0 0 1 2 2v5a2 2 0 0 1-.41 1.41z" transform="rotate(90 12 12)" />
       <circle cx="15" cy="9" r="1" />
+    </>
+  ),
+  wallet: (
+    <>
+      <path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v3" />
+      <path d="M3 7v11a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
+      <path d="M16 13h4a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-4a2 2 0 0 1 0-4z" />
+    </>
+  ),
+  vault: (
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 10v2l1.5 1" />
+      <path d="M7 3v2M17 3v2M7 19v2M17 19v2" />
     </>
   ),
   logout: (

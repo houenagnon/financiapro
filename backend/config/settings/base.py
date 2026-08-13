@@ -18,6 +18,7 @@ LOCAL_APPS = [
     "apps.finances",
     "apps.declarations",
     "apps.reports",
+    "apps.placements",
     "apps.core",
 ]
 

@@ -72,6 +72,37 @@ export function TypeBadge({ type }: { type: "REVENU" | "DEPENSE" }) {
   );
 }
 
+const RISQUE_STYLES = {
+  FAIBLE: "bg-emerald-50 text-emerald-600",
+  MODERE: "bg-amber-50 text-amber-600",
+  ELEVE: "bg-rose-50 text-rose-600",
+} as const;
+const RISQUE_LABELS = { FAIBLE: "Faible", MODERE: "Modéré", ELEVE: "Élevé" } as const;
+
+export function RisqueBadge({ niveau }: { niveau: keyof typeof RISQUE_STYLES }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${RISQUE_STYLES[niveau]}`}
+    >
+      <Dot />
+      {RISQUE_LABELS[niveau]}
+    </span>
+  );
+}
+
+export function StatutPlacementBadge({ statut }: { statut: "EN_COURS" | "CLOTURE" }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+        statut === "EN_COURS" ? "bg-indigo-50 text-indigo-600" : "bg-slate-100 text-slate-500"
+      }`}
+    >
+      <Dot />
+      {statut === "EN_COURS" ? "En cours" : "Clôturé"}
+    </span>
+  );
+}
+
 export function InfoBadge({ children }: { children: React.ReactNode }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-600">

@@ -41,12 +41,17 @@ Assistants**.
 - **Category** — catégories/sous-catégories de revenus et dépenses, catalogue global
 - **Transaction** — mouvement financier (revenu ou dépense) rattaché à un centre
 - **DeclarationJournaliere** — statut de déclaration du jour par centre (déclaré avec mouvement / sans mouvement / non déclaré)
+- **TypePlacement** — catalogue des types de placement (dépôt à terme, obligation, action, immobilier...), géré par l'Économat central
+- **Portefeuille** — regroupement de placements, géré par l'Économat central
+- **Placement** — un investissement au sein d'un portefeuille (montant investi, niveau de risque qualitatif, statut en cours/clôturé)
+- **ValorisationPlacement** — historique des valorisations d'un placement ("marquage"), une ligne par mise à jour
+- **MouvementTresorerie** — journal de la trésorerie centrale (virements avec les centres, achats/rachats de placements) ; sa somme donne le solde de la caisse centrale
 
 ## Rôles & permissions
 
 | Rôle | Portée | Peut créer | Peut voir |
 |---|---|---|---|
-| Économat central | Globale | Centres, types de centre, économes principaux, catégories | Tous les centres, rapports consolidés |
+| Économat central | Globale | Centres, types de centre, économes principaux, catégories, portefeuilles/placements, virements de trésorerie | Tous les centres, rapports consolidés, placements et trésorerie centrale |
 | Économe principal | Son centre | Assistants de son centre, transactions | Données de son centre uniquement |
 | Assistant | Son centre | Transactions | Données de son centre uniquement |
 
@@ -65,6 +70,7 @@ financiapro/
       centres/       # Centre, TypeCentre
       finances/      # Category, Transaction
       declarations/  # DeclarationJournaliere
+      placements/    # TypePlacement, Portefeuille, Placement, ValorisationPlacement, MouvementTresorerie (trésorerie centrale)
       reports/       # endpoints d'agrégation (lecture seule, cross-app)
       core/          # permissions/mixins/pagination communs
     requirements/ (base.txt, dev.txt, prod.txt)
@@ -73,7 +79,7 @@ financiapro/
     src/
       app/
         (auth)/login/
-        (economat)/dashboard/ centres/ types-centres/ categories/ utilisateurs/ rapports/
+        (economat)/dashboard/ centres/ types-centres/ categories/ utilisateurs/ placements/ tresorerie/ rapports/
         (centre)/tableau-de-bord/ operations/ declaration-du-jour/ assistants/ rapports/
         profil/
       components/ (ui/, forms/, layout/)
@@ -117,8 +123,25 @@ GET    /api/declarations/statut-jour/?date=
 
 GET    /api/rapports/consolide/?periode=&type_centre=
 GET    /api/rapports/comparaison-centres/?periode=
+GET    /api/rapports/placements/   (solde caisse, performance/risque consolidés)
 
 GET    /api/centre/dashboard/
+
+GET    /api/types-placements/      POST/PATCH/DELETE /api/types-placements/{id}/
+
+GET    /api/portefeuilles/         POST /api/portefeuilles/
+GET    /api/portefeuilles/{id}/    PATCH/DELETE /api/portefeuilles/{id}/
+GET    /api/portefeuilles/{id}/performance/
+
+GET    /api/placements/            POST /api/placements/            (achat, débite la caisse)
+GET    /api/placements/{id}/       PATCH/DELETE /api/placements/{id}/
+POST   /api/placements/{id}/valoriser/   ("marquer" le placement)
+GET    /api/placements/{id}/historique/  (historique des valorisations)
+POST   /api/placements/{id}/cloturer/    (rachat/vente, crédite la caisse)
+
+GET    /api/tresorerie/mouvements/
+GET    /api/tresorerie/solde/
+POST   /api/tresorerie/virements/  (centre <-> trésorerie centrale, génère aussi la Transaction du centre)
 ```
 
 ## Feuille de route (MVP)
@@ -130,6 +153,10 @@ GET    /api/centre/dashboard/
 - **Étape 4** — Suivi quotidien (DeclarationJournaliere, rappels in-app)
 - **Étape 5** — Reporting Économat central (consolidé global, comparaison centres)
 - **Étape 6** — Durcissement & mise en production (tests, seed, déploiement)
+- **Étape 7** — Placements (portefeuilles d'investissement gérés par l'Économat
+  central, trésorerie centrale alimentée par virements depuis les centres,
+  suivi des valorisations, rapports de performance/risque) — extension
+  post-MVP, hors des 6 étapes initiales
 
 Hors périmètre MVP : rappels email/SMS, journal d'audit détaillé, pièces
 justificatives, budgets, projets/dons nominatifs, stocks, immobilisations.
